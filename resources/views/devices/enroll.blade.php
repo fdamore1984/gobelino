@@ -23,15 +23,18 @@
         </a>
     </div>
 
-    <script src="{{ asset('js/qrcode.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.4.4/qrcode.min.js"></script>
     <script>
         const qrData = @json($enrollmentToken->qr_code_json);
+        
         QRCode.toCanvas(document.createElement('canvas'), qrData, { width: 260 }, function (error, canvas) {
             if (error) {
                 document.getElementById('qrcode').innerText = 'Errore nella generazione del QR.';
                 console.error(error);
                 return;
             }
+            // Svuota prima il div per sicurezza (evita duplicati se lo script gira due volte)
+            document.getElementById('qrcode').innerHTML = '';
             document.getElementById('qrcode').appendChild(canvas);
         });
     </script>
