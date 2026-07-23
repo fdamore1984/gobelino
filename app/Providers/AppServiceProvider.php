@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,5 +31,10 @@ class AppServiceProvider extends ServiceProvider
         if ($json && ! file_exists($path)) {
             file_put_contents($path, $json);
         }
+        
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+        
     }
 }
