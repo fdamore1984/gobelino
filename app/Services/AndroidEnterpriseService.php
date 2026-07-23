@@ -18,7 +18,25 @@ class AndroidEnterpriseService
     public function __construct()
     {
         $client = new GoogleClient();
-        $client->setAuthConfig(storage_path('app/google-amapi.json'));
+        
+        // 1. Controlla se le credenziali sono passate tramite variabile d'ambiente (per Railway)
+        $credentialsEnv = env('GOOGLE_APPLICATION_CREDENTIALS_JSON');
+
+        if (!empty($credentialsEnv)) {
+            // Decodifica la stringa JSON fornita da Railway
+            $credentials = json_decode($credentialsEnv, true);
+            
+            // Verifica di sicurezza sulla validità del JSON
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception("Il JSON di Google in Railway non è valido: " . json_last_error_msg());
+            }
+            
+            $client->setAuthConfig($credentials);
+        } else {
+            // 2. Fallback per lo sviluppo locale: legge dal file fisico
+            $client->setAuthConfig(storage_path('app/google-amapi.json'));
+        }
+
         $client->addScope(AndroidManagement::ANDROIDMANAGEMENT);
 
         $this->service = new AndroidManagement($client);
