@@ -1,5 +1,7 @@
 # Gobelino – Setup 100% cloud (nessun passaggio in locale)
 
+
+
 Guida per creare tutto direttamente su GitHub e Railway, dal browser,
 senza installare nulla sul tuo computer/Steam Deck.
 
