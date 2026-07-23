@@ -23,7 +23,7 @@
         </a>
     </div>
 
-    <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="{{ asset('js/qrcode.min.js') }}"></script>
     <script>
         const qrData = @json($enrollmentToken->qr_code_json);
         QRCode.toCanvas(document.createElement('canvas'), qrData, { width: 260 }, function (error, canvas) {
