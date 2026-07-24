@@ -22,6 +22,20 @@
         </div>
     @endif
 
+    @if (! $company->hasApnsConfigured())
+        <div class="bg-white rounded-xl shadow p-6 text-center mb-6">
+            <h2 class="font-medium text-gray-800 mb-2">Configura il certificato push APNs</h2>
+            <p class="text-sm text-gray-500 mb-4">
+                Prima di poter aggiungere iPhone/iPad, devi configurare il
+                certificato push APNs della tua azienda presso Apple.
+            </p>
+            <a href="{{ route('apns.connect') }}"
+               class="inline-block bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition text-sm">
+                Configura APNs
+            </a>
+        </div>
+    @endif
+
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <form method="POST" action="{{ route('devices.enroll') }}">
             @csrf

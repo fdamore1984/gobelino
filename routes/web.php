@@ -1,12 +1,21 @@
 <?php
 
 use App\Http\Controllers\AndroidEnterpriseController;
+use App\Http\Controllers\ApnsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\IosMdmController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
+
+// Root: se loggato vai in dashboard, altrimenti al login. Senza questa
+// rotta, aprire il dominio nudo (es. l'URL di Railway) dava 404.
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
 
 // Endpoint pubblico: lo apre Safari sul dispositivo iOS/iPadOS dopo la
 // scansione del QR, non un utente autenticato dell'app.
@@ -40,6 +49,14 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
         ->name('android-enterprise.connect');
     Route::get('/android-enterprise/callback', [AndroidEnterpriseController::class, 'callback'])
         ->name('android-enterprise.callback');
+
+    // Configurazione certificato push APNs (necessario per gli iPhone/iPad)
+    Route::get('/apns/connect', [ApnsController::class, 'create'])
+        ->name('apns.connect');
+    Route::post('/apns/csr', [ApnsController::class, 'generateCsr'])
+        ->name('apns.csr');
+    Route::post('/apns/upload', [ApnsController::class, 'upload'])
+        ->name('apns.upload');
 
     // Dispositivi
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
