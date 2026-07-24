@@ -8,33 +8,60 @@
     </div>
 
     @if (! $company->hasAndroidEnterprise())
-        <div class="bg-white rounded-xl shadow p-6 text-center">
+        <div class="bg-white rounded-xl shadow p-6 text-center mb-6">
             <h2 class="font-medium text-gray-800 mb-2">Collega Android Enterprise</h2>
             <p class="text-sm text-gray-500 mb-4">
-                Prima di poter aggiungere dispositivi, devi collegare l'account
-                Android Enterprise della tua azienda. È gratuito e richiede
-                un account Google aziendale.
+                Prima di poter aggiungere dispositivi Android, devi collegare
+                l'account Android Enterprise della tua azienda. È gratuito e
+                richiede un account Google aziendale.
             </p>
             <a href="{{ route('android-enterprise.connect') }}"
                class="inline-block bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 transition text-sm">
                 Collega Android Enterprise
             </a>
         </div>
-    @else
-        <div class="flex flex-col sm:flex-row gap-3 mb-6">
-            <form method="POST" action="{{ route('devices.enroll') }}">
-                @csrf
-                <button type="submit" class="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 transition text-sm">
-                    Aggiungi dispositivo (genera QR)
-                </button>
-            </form>
+    @endif
+
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <form method="POST" action="{{ route('devices.enroll') }}">
+            @csrf
+            <input type="hidden" name="platform" value="android">
+            <button type="submit"
+                    @disabled(! $company->hasAndroidEnterprise())
+                    class="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                Aggiungi Android (genera QR)
+            </button>
+        </form>
+
+        <form method="POST" action="{{ route('devices.enroll') }}">
+            @csrf
+            <input type="hidden" name="platform" value="ios">
+            <button type="submit"
+                    @disabled(! $company->hasApnsConfigured())
+                    title="{{ $company->hasApnsConfigured() ? '' : 'Configura prima il certificato push APNs' }}"
+                    class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                Aggiungi iPhone/iPad (genera QR)
+            </button>
+        </form>
+
+        @if ($company->hasAndroidEnterprise())
             <form method="POST" action="{{ route('devices.sync') }}">
                 @csrf
                 <button type="submit" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm">
                     Sincronizza dispositivi
                 </button>
             </form>
-        </div>
+        @endif
+    </div>
+
+    @if (! $company->hasApnsConfigured())
+        <p class="text-xs text-gray-400 mb-6">
+            Per abilitare l'aggiunta di iPhone/iPad serve prima configurare
+            il certificato push APNs della tua azienda.
+        </p>
+    @endif
+
+    @if ($company->hasAndroidEnterprise() || $company->hasApnsConfigured())
 
         @if ($devices->isEmpty())
             <div class="bg-white rounded-xl shadow p-8 text-center text-gray-500 text-sm">
@@ -47,7 +74,10 @@
                 @foreach ($devices as $device)
                     <div class="p-4 flex items-center justify-between">
                         <div>
-                            <p class="font-medium text-gray-800">{{ $device->name ?? 'Dispositivo senza nome' }}</p>
+                            <p class="font-medium text-gray-800">
+                                {{ $device->name ?? 'Dispositivo senza nome' }}
+                                <span class="text-[10px] uppercase tracking-wide text-gray-400 ml-1">{{ $device->platform }}</span>
+                            </p>
                             <p class="text-xs text-gray-500">
                                 {{ $device->manufacturer }} {{ $device->model }}
                                 @if ($device->android_version)

@@ -4,8 +4,14 @@ use App\Http\Controllers\AndroidEnterpriseController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\IosMdmController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
+
+// Endpoint pubblico: lo apre Safari sul dispositivo iOS/iPadOS dopo la
+// scansione del QR, non un utente autenticato dell'app.
+Route::get('/ios-mdm/profile/{token}', [IosMdmController::class, 'profile'])
+    ->name('ios-mdm.profile');
 
 // Ospiti: registrazione e login
 Route::middleware('guest')->group(function () {

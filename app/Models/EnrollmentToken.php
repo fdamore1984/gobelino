@@ -13,6 +13,7 @@ class EnrollmentToken extends Model
     protected $fillable = [
         'company_id',
         'created_by',
+        'platform',
         'google_name',
         'qr_code_json',
         'expires_at',

@@ -17,12 +17,23 @@ class Company extends Model
         'payment_provider_customer_id',
         'android_enterprise_name',
         'android_signup_url_name',
+        'apns_certificate_pem',
+        'apns_private_key_pem',
+        'apns_topic',
+        'apns_expires_at',
+    ];
+
+    protected $hidden = [
+        'apns_private_key_pem',
     ];
 
     protected function casts(): array
     {
         return [
             'trial_ends_at' => 'datetime',
+            'apns_expires_at' => 'datetime',
+            'apns_certificate_pem' => 'encrypted',
+            'apns_private_key_pem' => 'encrypted',
         ];
     }
 
@@ -63,5 +74,17 @@ class Company extends Model
     public function hasAndroidEnterprise(): bool
     {
         return ! empty($this->android_enterprise_name);
+    }
+
+    /**
+     * True se l'azienda ha caricato un certificato push APNs valido
+     * (prerequisito indispensabile per iscrivere iPhone/iPad).
+     * Finché manca, l'enrollment iOS resta disabilitato.
+     */
+    public function hasApnsConfigured(): bool
+    {
+        return ! empty($this->apns_certificate_pem)
+            && ! empty($this->apns_private_key_pem)
+            && ($this->apns_expires_at === null || $this->apns_expires_at->isFuture());
     }
 }

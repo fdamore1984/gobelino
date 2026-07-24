@@ -14,13 +14,27 @@ class Device extends Model
         'company_id',
         'added_by',
         'name',
+        'platform',
         'google_device_id',
+        'udid',
+        'push_magic',
+        'mdm_token',
         'status',
         'model',
         'manufacturer',
         'android_version',
         'last_synced_at',
     ];
+
+    public function isIos(): bool
+    {
+        return $this->platform === 'ios';
+    }
+
+    public function isAndroid(): bool
+    {
+        return $this->platform === 'android';
+    }
 
     protected function casts(): array
     {

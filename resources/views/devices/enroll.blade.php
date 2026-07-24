@@ -5,12 +5,23 @@
 @section('content')
     <div class="max-w-md mx-auto text-center bg-white rounded-xl shadow p-8">
         <h1 class="text-lg font-semibold text-gray-800 mb-2">Scansiona per iscrivere il dispositivo</h1>
-        <p class="text-sm text-gray-500 mb-6">
-            Su un dispositivo Android nuovo o resettato, nella schermata di
-            benvenuto tocca 6 volte un punto vuoto per attivare la modalità
-            di configurazione tramite QR, poi collegati al Wi-Fi e scansiona
-            questo codice.
-        </p>
+
+        @if ($enrollmentToken->platform === 'ios')
+            <p class="text-sm text-gray-500 mb-6">
+                Apri l'app Fotocamera sull'iPhone/iPad e inquadra questo
+                codice: si aprirà Safari con il profilo di gestione da
+                installare. Vai poi in <strong>Impostazioni → Profilo
+                scaricato</strong> e tocca "Installa". Il dispositivo dovrà
+                essere connesso a Internet (Wi-Fi o dati).
+            </p>
+        @else
+            <p class="text-sm text-gray-500 mb-6">
+                Su un dispositivo Android nuovo o resettato, nella schermata di
+                benvenuto tocca 6 volte un punto vuoto per attivare la modalità
+                di configurazione tramite QR, poi collegati al Wi-Fi e scansiona
+                questo codice.
+            </p>
+        @endif
 
         <div id="qrcode" class="flex justify-center mb-4"></div>
 
