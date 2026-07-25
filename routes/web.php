@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\IosMdmController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ApnsConfigController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
