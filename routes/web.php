@@ -77,3 +77,9 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
         Route::delete('/team/{user}', [TeamController::class, 'destroy'])->name('team.destroy');
     });
 });
+
+    // Configurazione APNs
+    Route::get('/apns/configure', [ApnsConfigController::class, 'show'])->name('apns.configure');
+    Route::post('/apns/generate-csr', [ApnsConfigController::class, 'generateCsr'])->name('apns.generate-csr');
+    Route::post('/apns/upload-certificate', [ApnsConfigController::class, 'uploadCertificate'])->name('apns.upload-certificate');
+    Route::get('/apns/download-csr', [ApnsConfigController::class, 'downloadCsr'])->name('apns.download-csr');

@@ -24,6 +24,7 @@
                     @if (auth()->user()->canManageUsers())
                         <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
                     @endif
+                    <a href="{{ route('apns.configure') }}" class="hover:text-green-200">APNs</a>
                     <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -44,6 +45,7 @@
                 @if (auth()->user()->canManageUsers())
                     <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
                 @endif
+                    <a href="{{ route('apns.configure') }}" class="hover:text-green-200">APNs</a>
                 <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
