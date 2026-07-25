@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\IosMdmController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +63,12 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::post('/devices/enroll', [DeviceController::class, 'createEnrollment'])->name('devices.enroll');
     Route::post('/devices/sync', [DeviceController::class, 'sync'])->name('devices.sync');
+
+    // Profilo utente
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.change-password');
+    Route::delete('/profile', [ProfileController::class, 'deleteAccount'])->name('profile.delete');
 
     // Gestione team: solo owner e admin
     Route::middleware('can-manage-users')->group(function () {

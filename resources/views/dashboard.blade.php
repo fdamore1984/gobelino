@@ -6,9 +6,6 @@
     <h1 class="text-xl sm:text-2xl font-semibold text-gray-800">
         Benvenuto, {{ auth()->user()->company->name }}
     </h1>
-    <p class="text-gray-600 mt-2 text-sm sm:text-base">
-        Da qui potrai gestire i dispositivi mobile e le utenze della tua azienda.
-    </p>
 
     <div class="grid sm:grid-cols-2 gap-4 mt-6">
         <a href="{{ route('devices.index') }}" class="block bg-white p-5 rounded-xl shadow hover:shadow-md transition">

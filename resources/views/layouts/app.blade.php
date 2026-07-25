@@ -24,6 +24,7 @@
                     @if (auth()->user()->canManageUsers())
                         <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
                     @endif
+                    <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button class="hover:text-green-200">Esci</button>
@@ -43,6 +44,7 @@
                 @if (auth()->user()->canManageUsers())
                     <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
                 @endif
+                <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="hover:text-green-200 text-left">Esci</button>

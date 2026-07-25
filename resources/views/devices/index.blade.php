@@ -68,12 +68,7 @@
         @endif
     </div>
 
-    @if (! $company->hasApnsConfigured())
-        <p class="text-xs text-gray-400 mb-6">
-            Per abilitare l'aggiunta di iPhone/iPad serve prima configurare
-            il certificato push APNs della tua azienda.
-        </p>
-    @endif
+
 
     @if ($company->hasAndroidEnterprise() || $company->hasApnsConfigured())
 
