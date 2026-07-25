@@ -18,10 +18,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      *
-     * Su Railway non carichiamo il file storage/app/google-amapi.json a
-     * mano: il suo contenuto viene passato come variabile d'ambiente
-     * GOOGLE_AMAPI_JSON, e qui lo scriviamo su disco ad ogni avvio se
-     * il file non esiste ancora.
+     * On Railway we don't load the storage/app/google-amapi.json file
+     * by hand: its content is passed as the GOOGLE_AMAPI_JSON
+     * environment variable, and here we write it to disk on every
+     * startup if the file doesn't already exist.
      */
     public function boot(): void
     {

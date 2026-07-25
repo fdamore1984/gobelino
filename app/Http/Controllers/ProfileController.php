@@ -9,7 +9,7 @@ use Illuminate\Validation\Rules;
 class ProfileController extends Controller
 {
     /**
-     * Mostra la pagina del profilo
+     * Shows the profile page
      */
     public function show()
     {
@@ -17,7 +17,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Aggiorna i dati del profilo (email)
+     * Updates the profile data (email)
      */
     public function update(Request $request)
     {
@@ -28,11 +28,11 @@ class ProfileController extends Controller
         auth()->user()->update($validated);
 
         return redirect()->route('profile.show')
-            ->with('success', 'Email aggiornata con successo.');
+            ->with('success', 'Email updated successfully.');
     }
 
     /**
-     * Cambia la password
+     * Changes the password
      */
     public function changePassword(Request $request)
     {
@@ -46,18 +46,18 @@ class ProfileController extends Controller
         ]);
 
         return redirect()->route('profile.show')
-            ->with('success', 'Password cambiata con successo.');
+            ->with('success', 'Password changed successfully.');
     }
 
     /**
-     * Elimina l'account (solo se owner)
+     * Deletes the account (owner only)
      */
     public function deleteAccount(Request $request)
     {
-        // Solo l'owner può eliminare l'account
+        // Only the owner can delete the account
         if (!auth()->user()->isOwner()) {
             return redirect()->route('profile.show')
-                ->with('error', 'Non hai i permessi per eliminare l\'account.');
+                ->with('error', 'You do not have permission to delete the account.');
         }
 
         $request->validate([
@@ -66,10 +66,10 @@ class ProfileController extends Controller
 
         $user = auth()->user();
 
-        // Logout
+        // Log out
         auth()->logout();
 
-        // Eliminazione dell'utente e della sua azienda
+        // Delete the user and their company
         $company = $user->company;
         $user->delete();
         $company->delete();
@@ -78,6 +78,6 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login')
-            ->with('success', 'Account eliminato con successo.');
+            ->with('success', 'Account deleted successfully.');
     }
 }

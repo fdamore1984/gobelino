@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
-@section('title', '– Profilo')
+@section('title', '– Profile')
 
 @section('content')
     <div class="max-w-2xl">
         <h1 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-6">
-            Profilo
+            Profile
         </h1>
 
-        {{-- Sezione: Dati Account --}}
+        {{-- Section: Account details --}}
         <div class="bg-white rounded-xl shadow p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Dati Account</h2>
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Account details</h2>
 
             <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
                 @csrf
@@ -30,14 +30,14 @@
 
                 <button type="submit"
                         class="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 transition text-sm">
-                    Salva Modifiche
+                    Save Changes
                 </button>
             </form>
         </div>
 
-        {{-- Sezione: Cambia Password --}}
+        {{-- Section: Change password --}}
         <div class="bg-white rounded-xl shadow p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">Cambia Password</h2>
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Change Password</h2>
 
             <form method="POST" action="{{ route('profile.change-password') }}" class="space-y-4">
                 @csrf
@@ -45,7 +45,7 @@
 
                 <div>
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">
-                        Password Attuale
+                        Current Password
                     </label>
                     <input type="password" id="current_password" name="current_password"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
@@ -57,7 +57,7 @@
 
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-                        Nuova Password
+                        New Password
                     </label>
                     <input type="password" id="password" name="password"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
@@ -69,7 +69,7 @@
 
                 <div>
                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-1">
-                        Conferma Password
+                        Confirm Password
                     </label>
                     <input type="password" id="password_confirmation" name="password_confirmation"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm"
@@ -78,34 +78,34 @@
 
                 <button type="submit"
                         class="bg-green-800 text-white px-4 py-2 rounded-lg hover:bg-green-900 transition text-sm">
-                    Cambia Password
+                    Change Password
                 </button>
             </form>
         </div>
 
-        {{-- Sezione: Elimina Account (solo per owner) --}}
+        {{-- Section: Delete account (owner only) --}}
         @if (auth()->user()->isOwner())
             <div class="bg-red-50 border border-red-200 rounded-xl p-6">
-                <h2 class="text-lg font-semibold text-red-800 mb-4">Elimina Account</h2>
+                <h2 class="text-lg font-semibold text-red-800 mb-4">Delete Account</h2>
                 <p class="text-sm text-red-700 mb-4">
-                    Eliminando il tuo account, verranno eliminati anche l'azienda, tutti gli utenti
-                    del team e tutti i dispositivi associati. Questa azione è irreversibile.
+                    Deleting your account will also delete the company, all
+                    team users, and all associated devices. This action is irreversible.
                 </p>
 
                 <button onclick="document.getElementById('delete-modal').classList.remove('hidden')"
                         class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm">
-                    Elimina Account
+                    Delete Account
                 </button>
 
-                {{-- Modal di conferma eliminazione --}}
+                {{-- Delete confirmation modal --}}
                 <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">
-                            Sei Sicuro?
+                            Are You Sure?
                         </h3>
                         <p class="text-sm text-gray-600 mb-4">
-                            Questa azione eliminerà permanentemente il tuo account e tutti i dati associati.
-                            Non potrà essere annullata.
+                            This action will permanently delete your account and all associated data.
+                            It cannot be undone.
                         </p>
 
                         <form method="POST" action="{{ route('profile.delete') }}" class="space-y-4">
@@ -114,7 +114,7 @@
 
                             <div>
                                 <label for="delete_password" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Inserisci la tua password per confermare
+                                    Enter your password to confirm
                                 </label>
                                 <input type="password" id="delete_password" name="password"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
@@ -128,11 +128,11 @@
                                 <button type="button"
                                         onclick="document.getElementById('delete-modal').classList.add('hidden')"
                                         class="flex-1 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm">
-                                    Annulla
+                                    Cancel
                                 </button>
                                 <button type="submit"
                                         class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm">
-                                    Elimina Account
+                                    Delete Account
                                 </button>
                             </div>
                         </form>

@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Le pagine apns/connect e apns/configure sono state unificate in
-     * un unico flusso a 2 step (vedi ApnsController). Ripuliamo qui le
-     * colonne introdotte per il vecchio flusso a più step che non
-     * servono più: la CSR "server" non viene più tenuta separata dalla
-     * chiave privata principale, e non si carica più manualmente né la
-     * CSR firmata intermedia né un secondo certificato duplicato.
+     * The apns/connect and apns/configure pages have been merged into
+     * a single 2-step flow (see ApnsController). Here we clean up the
+     * columns introduced for the old multi-step flow that are no
+     * longer needed: the "server" CSR is no longer kept separate from
+     * the main private key, and neither the intermediate signed CSR
+     * nor a second duplicate certificate are manually uploaded anymore.
      */
     public function up(): void
     {

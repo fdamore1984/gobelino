@@ -15,8 +15,8 @@ return new class extends Migration
 
             $table->string('name')->nullable();
 
-            // Identificativo dispositivo lato Android Management API,
-            // es. enterprises/LC00abc/devices/xxxxx (popolato dopo l'enrollment)
+            // Device identifier on the Android Management API side,
+            // e.g. enterprises/LC00abc/devices/xxxxx (populated after enrollment)
             $table->string('google_device_id')->nullable()->unique();
 
             $table->string('status')->default('pending');

@@ -18,9 +18,9 @@ return new class extends Migration
 
             // Android Enterprise (Android Management API)
             $table->string('android_enterprise_name')->nullable()
-                ->comment('Es. enterprises/LC00abc123, valorizzato dopo il collegamento');
+                ->comment('E.g. enterprises/LC00abc123, populated after connecting');
             $table->string('android_signup_url_name')->nullable()
-                ->comment('Valore temporaneo usato durante il collegamento, prima di ottenere android_enterprise_name');
+                ->comment('Temporary value used during the connection, before obtaining android_enterprise_name');
 
             $table->timestamps();
         });

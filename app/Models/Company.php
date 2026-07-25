@@ -46,9 +46,9 @@ class Company extends Model
     }
 
     /**
-     * True se è stata inviata una richiesta a mdmcert.download (Step 1
-     * della configurazione APNs) ma non è ancora stato caricato il
-     * certificato finale firmato da Apple (Step 2).
+     * True if a request has been sent to mdmcert.download (Step 1
+     * of the APNs configuration) but the final certificate signed
+     * by Apple hasn't been uploaded yet (Step 2).
      */
     public function isAwaitingApnsCertificate(): bool
     {
@@ -86,8 +86,8 @@ class Company extends Model
     }
 
     /**
-     * True se l'azienda ha già collegato il proprio Android Enterprise.
-     * Finché non lo fa, non può aggiungere dispositivi.
+     * True if the company has already connected its Android Enterprise.
+     * Until it does, it can't add devices.
      */
     public function hasAndroidEnterprise(): bool
     {
@@ -95,9 +95,9 @@ class Company extends Model
     }
 
     /**
-     * True se l'azienda ha caricato un certificato push APNs valido
-     * (prerequisito indispensabile per iscrivere iPhone/iPad).
-     * Finché manca, l'enrollment iOS resta disabilitato.
+     * True if the company has uploaded a valid APNs push certificate
+     * (an essential prerequisite for enrolling iPhone/iPad devices).
+     * Until it's present, iOS enrollment stays disabled.
      */
     public function hasApnsConfigured(): bool
     {

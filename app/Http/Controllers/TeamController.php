@@ -41,7 +41,7 @@ class TeamController extends Controller
     public function destroy(Request $request, User $user): RedirectResponse
     {
         abort_unless($user->company_id === $request->user()->company_id, 403);
-        abort_if($user->isOwner(), 403, 'Non puoi rimuovere il titolare dell\'account.');
+        abort_if($user->isOwner(), 403, 'You cannot remove the account owner.');
 
         $user->delete();
 

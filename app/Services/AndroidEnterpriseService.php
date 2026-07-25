@@ -19,21 +19,21 @@ class AndroidEnterpriseService
     {
         $client = new GoogleClient();
         
-        // 1. Controlla se le credenziali sono passate tramite variabile d'ambiente (per Railway)
+        // 1. Check if credentials are passed via environment variable (for Railway)
         $credentialsEnv = env('GOOGLE_APPLICATION_CREDENTIALS_JSON');
 
         if (!empty($credentialsEnv)) {
-            // Decodifica la stringa JSON fornita da Railway
+            // Decode the JSON string provided by Railway
             $credentials = json_decode($credentialsEnv, true);
             
-            // Verifica di sicurezza sulla validità del JSON
+            // Safety check on JSON validity
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception("Il JSON di Google in Railway non è valido: " . json_last_error_msg());
+                throw new \Exception("The Google JSON in Railway is not valid: " . json_last_error_msg());
             }
             
             $client->setAuthConfig($credentials);
         } else {
-            // 2. Fallback per lo sviluppo locale: legge dal file fisico
+            // 2. Fallback for local development: reads from the physical file
             $client->setAuthConfig(storage_path('app/google-amapi.json'));
         }
 
@@ -44,8 +44,8 @@ class AndroidEnterpriseService
     }
 
     /**
-     * Step 1 del collegamento: genera l'URL a cui reindirizzare l'admin
-     * per creare/collegare il suo Android Enterprise.
+     * Step 1 of the connection: generates the URL to redirect the admin
+     * to in order to create/connect their Android Enterprise.
      */
     public function createSignupUrl(string $callbackUrl): SignupUrl
     {
@@ -56,9 +56,9 @@ class AndroidEnterpriseService
     }
 
     /**
-     * Step 2: dopo il redirect di Google (con enterpriseToken e
-     * signupUrlName nella query string), finalizza la creazione
-     * dell'enterprise e restituisce il suo nome (enterprises/xxxx).
+     * Step 2: after Google's redirect (with enterpriseToken and
+     * signupUrlName in the query string), finalizes the creation
+     * of the enterprise and returns its name (enterprises/xxxx).
      */
     public function completeEnterpriseSignup(string $signupUrlName, string $enterpriseToken): Enterprise
     {
@@ -74,8 +74,8 @@ class AndroidEnterpriseService
     }
 
     /**
-     * Crea (o aggiorna) una policy minimale da associare ai dispositivi.
-     * Da qui in futuro si potranno aggiungere restrizioni specifiche.
+     * Creates (or updates) a minimal policy to associate with devices.
+     * Specific restrictions can be added here in the future.
      */
     public function ensureDefaultPolicy(string $enterpriseName): string
     {
@@ -91,22 +91,22 @@ class AndroidEnterpriseService
     }
 
     /**
-     * Genera un token di iscrizione (da cui si ricava il QR code da
-     * far scansionare al dispositivo Android in fase di provisioning).
+     * Generates an enrollment token (from which the QR code is derived
+     * to be scanned by the Android device during provisioning).
      */
     public function createEnrollmentToken(string $enterpriseName, string $policyName): GoogleEnrollmentToken
     {
         $token = new GoogleEnrollmentToken([
             'policyName' => $policyName,
-            'duration' => '3600s', // valido un'ora
+            'duration' => '3600s', // valid for one hour
         ]);
 
         return $this->service->enterprises_enrollmentTokens->create($enterpriseName, $token);
     }
 
     /**
-     * Recupera l'elenco dei dispositivi già iscritti su Google per
-     * quell'enterprise (usato per sincronizzare lo stato locale).
+     * Retrieves the list of devices already enrolled on Google for
+     * that enterprise (used to sync the local state).
      */
     public function listDevices(string $enterpriseName): array
     {

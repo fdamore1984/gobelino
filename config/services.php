@@ -35,8 +35,8 @@ return [
         ],
     ],
 
-    // Chiave "server" fornita da mdmcert.download per firmare gratuitamente
-    // il CSR del certificato push APNs (vedi ApnsController).
+    // "Server" key provided by mdmcert.download to sign the APNs push
+    // certificate CSR for free (see ApnsController).
     'mdmcert' => [
         'server_key' => env('MDMCERT_SERVER_KEY'),
     ],

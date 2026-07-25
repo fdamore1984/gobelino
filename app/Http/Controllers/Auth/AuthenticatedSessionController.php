@@ -25,7 +25,7 @@ class AuthenticatedSessionController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
-                'email' => 'Le credenziali inserite non sono corrette.',
+                'email' => 'The provided credentials are incorrect.',
             ]);
         }
 

@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 class AndroidEnterpriseController extends Controller
 {
     /**
-     * Avvia il collegamento: genera l'URL di Google e ci reindirizza
-     * l'utente. Va chiamato dal pulsante "Collega Android Enterprise"
-     * nella sezione Dispositivi.
+     * Starts the connection: generates the Google URL and redirects
+     * the user there. Should be called from the "Connect Android
+     * Enterprise" button in the Devices section.
      */
     public function create(Request $request, AndroidEnterpriseService $service): RedirectResponse
     {
@@ -19,8 +19,8 @@ class AndroidEnterpriseController extends Controller
 
         $signupUrl = $service->createSignupUrl($callbackUrl);
 
-        // Salviamo il nome della signup URL: serve dopo, quando Google
-        // reindirizza indietro, per completare la creazione.
+        // Save the signup URL name: needed later, when Google
+        // redirects back, to complete the creation.
         $request->user()->company->update([
             'android_signup_url_name' => $signupUrl->getName(),
         ]);
@@ -29,8 +29,8 @@ class AndroidEnterpriseController extends Controller
     }
 
     /**
-     * Google reindirizza qui dopo che l'admin ha completato il collegamento
-     * sulla sua interfaccia, passando enterpriseToken nella query string.
+     * Google redirects here after the admin completes the connection
+     * on its interface, passing enterpriseToken in the query string.
      */
     public function callback(Request $request, AndroidEnterpriseService $service): RedirectResponse
     {
@@ -40,7 +40,7 @@ class AndroidEnterpriseController extends Controller
 
         if (! $enterpriseToken || ! $company->android_signup_url_name) {
             return redirect()->route('devices.index')
-                ->with('error', 'Collegamento ad Android Enterprise non riuscito. Riprova.');
+                ->with('error', 'Connecting to Android Enterprise failed. Please try again.');
         }
 
         $enterprise = $service->completeEnterpriseSignup(
@@ -53,11 +53,11 @@ class AndroidEnterpriseController extends Controller
             'android_signup_url_name' => null,
         ]);
 
-        // Crea subito una policy di base, così l'azienda può generare
-        // token di iscrizione senza passaggi aggiuntivi.
+        // Immediately create a basic policy, so the company can generate
+        // enrollment tokens without additional steps.
         $service->ensureDefaultPolicy($enterprise->getName());
 
         return redirect()->route('devices.index')
-            ->with('success', 'Android Enterprise collegato correttamente.');
+            ->with('success', 'Android Enterprise connected successfully.');
     }
 }

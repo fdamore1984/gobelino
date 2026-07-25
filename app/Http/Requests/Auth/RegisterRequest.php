@@ -24,12 +24,12 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'company_name.required' => 'Il nome azienda è obbligatorio.',
-            'email.required' => 'L\'email è obbligatoria.',
-            'email.email' => 'Inserisci un indirizzo email valido.',
-            'email.unique' => 'Questa email è già registrata.',
-            'password.required' => 'La password è obbligatoria.',
-            'password.confirmed' => 'Le password non coincidono.',
+            'company_name.required' => 'The company name is required.',
+            'email.required' => 'The email is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already registered.',
+            'password.required' => 'The password is required.',
+            'password.confirmed' => 'The passwords do not match.',
         ];
     }
 }

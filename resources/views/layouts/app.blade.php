@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,14 +20,14 @@
 
                 <div class="hidden sm:flex items-center gap-6 text-sm">
                     <a href="{{ route('dashboard') }}" class="hover:text-green-200">Home</a>
-                    <a href="{{ route('devices.index') }}" class="hover:text-green-200">Dispositivi</a>
+                    <a href="{{ route('devices.index') }}" class="hover:text-green-200">Devices</a>
                     @if (auth()->user()->canManageUsers())
-                        <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
+                        <a href="{{ route('team.index') }}" class="hover:text-green-200">Users</a>
                     @endif
-                    <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
+                    <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profile</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button class="hover:text-green-200">Esci</button>
+                        <button class="hover:text-green-200">Log out</button>
                     </form>
                 </div>
 
@@ -40,14 +40,14 @@
 
             <div id="mobile-menu" class="hidden sm:hidden pb-4 flex flex-col gap-3 text-sm">
                 <a href="{{ route('dashboard') }}" class="hover:text-green-200">Home</a>
-                <a href="{{ route('devices.index') }}" class="hover:text-green-200">Dispositivi</a>
+                <a href="{{ route('devices.index') }}" class="hover:text-green-200">Devices</a>
                 @if (auth()->user()->canManageUsers())
-                    <a href="{{ route('team.index') }}" class="hover:text-green-200">Utenti</a>
+                    <a href="{{ route('team.index') }}" class="hover:text-green-200">Users</a>
                 @endif
-                <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profilo</a>
+                <a href="{{ route('profile.show') }}" class="hover:text-green-200">Profile</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="hover:text-green-200 text-left">Esci</button>
+                    <button class="hover:text-green-200 text-left">Log out</button>
                 </form>
             </div>
         </div>
@@ -55,7 +55,7 @@
 
     @if (auth()->user()->company->onTrial())
         <div class="bg-yellow-50 text-yellow-800 text-sm text-center py-2 px-4">
-            Prova gratuita attiva fino al {{ auth()->user()->company->trial_ends_at->format('d/m/Y') }}.
+            Free trial active until {{ auth()->user()->company->trial_ends_at->format('d/m/Y') }}.
         </div>
     @endif
     @endauth

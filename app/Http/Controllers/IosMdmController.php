@@ -7,20 +7,21 @@ use App\Services\IosMdmService;
 use Illuminate\Http\Response;
 
 /**
- * Endpoint pubblico (nessuna sessione utente: lo apre Safari sul device
- * iOS/iPadOS dopo la scansione del QR) che serve il profilo di enrollment.
+ * Public endpoint (no user session: it's opened by Safari on the
+ * iOS/iPadOS device after scanning the QR code) that serves the enrollment
+ * profile.
  *
- * NOTA: risponde ancora con un errore esplicito finché
- * IosMdmService::buildSignedMobileconfig() non sarà implementato
- * (serve il certificato vendor + push APNs, vedi quel file).
+ * NOTE: it still responds with an explicit error until
+ * IosMdmService::buildSignedMobileconfig() is implemented
+ * (requires the vendor certificate + push APNs, see that file).
  */
 class IosMdmController extends Controller
 {
     public function profile(string $token, IosMdmService $service): Response
     {
-        // Per i token iOS riusiamo la colonna google_name (inutilizzata,
-        // essendo pensata per il nome Google enterprises/.../enrollmentTokens/...)
-        // come identificatore locale univoco del token.
+        // For iOS tokens we reuse the google_name column (unused,
+        // as it was meant for the Google name enterprises/.../enrollmentTokens/...)
+        // as the local unique identifier of the token.
         $enrollmentToken = EnrollmentToken::where('platform', 'ios')
             ->where('google_name', $token)
             ->where('expires_at', '>', now())

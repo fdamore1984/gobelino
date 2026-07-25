@@ -12,27 +12,27 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
- * Gestisce la configurazione del certificato push APNs, prerequisito
- * per poter iscrivere iPhone/iPad (l'equivalente, per iOS, del
- * "Collega Android Enterprise" che esiste già per Android).
+ * Handles the configuration of the APNs push certificate, a prerequisite
+ * for enrolling iPhone/iPad devices (the iOS equivalent of the
+ * "Connect Android Enterprise" flow that already exists for Android).
  *
- * A differenza di Android Enterprise, qui NON esiste un flusso OAuth a
- * cui reindirizzare l'utente: Apple richiede un processo in due parti,
- * in parte fuori dalla nostra app. Tutta la configurazione avviene in
- * un'unica pagina (apns.configure), con due soli passaggi lato utente:
+ * Unlike Android Enterprise, there is NO OAuth flow here to
+ * redirect the user to: Apple requires a two-part process,
+ * partly outside our app. The whole configuration happens on a
+ * single page (apns.configure), with only two steps on the user's side:
  *
- *   Step 1: l'utente inserisce l'email con cui è registrato su
- *      https://mdmcert.download. Generiamo qui una coppia di chiavi +
- *      una CSR (Certificate Signing Request) e la inviamo, tramite
- *      l'API di mdmcert.download, a quella email: il servizio
- *      restituirà via mail il CSR firmato da Apple.
- *   Step 2 (fuori dalla nostra app): l'utente carica la CSR firmata
- *      ricevuta via mail su https://identity.apple.com/pushcert/
- *      (Apple Push Certificates Portal), che restituisce il
- *      certificato push finale (.pem).
- *   Step 2 (di nuovo qui): l'utente ricarica quel file .pem, che
- *      abbiniamo alla chiave privata generata allo Step 1 e salviamo
- *      sull'azienda.
+ *   Step 1: the user enters the email they're registered with on
+ *      https://mdmcert.download. Here we generate a key pair +
+ *      a CSR (Certificate Signing Request) and send it, via
+ *      the mdmcert.download API, to that email: the service
+ *      will send back the CSR signed by Apple via email.
+ *   Step 2 (outside our app): the user uploads the signed CSR
+ *      received by email to https://identity.apple.com/pushcert/
+ *      (Apple Push Certificates Portal), which returns the
+ *      final push certificate (.pem).
+ *   Step 2 (back here): the user uploads that .pem file, which we
+ *      pair with the private key generated in Step 1 and save
+ *      on the company.
  */
 class ApnsController extends Controller
 {
@@ -48,15 +48,15 @@ class ApnsController extends Controller
     }
 
     /**
-     * Step 1: genera la coppia di chiavi RSA + la CSR per il
-     * certificato push, genera anche il certificato "server" che
-     * l'API di mdmcert.download richiede per cifrare la risposta, e
-     * invia tutto a mdmcert.download insieme all'email indicata.
+     * Step 1: generates the RSA key pair + the CSR for the
+     * push certificate, also generates the "server" certificate that
+     * the mdmcert.download API requires to encrypt the response, and
+     * sends everything to mdmcert.download along with the given email.
      *
-     * La chiave privata viene salvata subito (cifrata) sull'azienda:
-     * è la stessa che dovrà combaciare con il certificato che verrà
-     * caricato allo Step 2. Finché il certificato non viene caricato,
-     * hasApnsConfigured() resta false.
+     * The private key is saved immediately (encrypted) on the company:
+     * it's the one that must match the certificate that will be
+     * uploaded in Step 2. Until the certificate is uploaded,
+     * hasApnsConfigured() stays false.
      */
     public function requestSignedCsr(Request $request): RedirectResponse
     {
@@ -76,7 +76,7 @@ class ApnsController extends Controller
 
         if ($privateKey === false) {
             return redirect()->route('apns.configure')
-                ->with('error', 'Impossibile generare la chiave privata sul server. Riprova o contatta il supporto.');
+                ->with('error', 'Unable to generate the private key on the server. Please try again or contact support.');
         }
 
         $csrSubject = [
@@ -102,18 +102,18 @@ class ApnsController extends Controller
             ]);
 
             if ($response->failed()) {
-                throw new \Exception('mdmcert.download ha risposto con un errore: '.$response->body());
+                throw new \Exception('mdmcert.download responded with an error: '.$response->body());
             }
         } catch (\Throwable $e) {
-            Log::error('Errore durante l\'invio del CSR a mdmcert.download: '.$e->getMessage());
+            Log::error('Error while sending the CSR to mdmcert.download: '.$e->getMessage());
 
             return redirect()->route('apns.configure')
-                ->with('error', 'Non è stato possibile inviare la richiesta a mdmcert.download. Riprova tra qualche minuto.');
+                ->with('error', 'It was not possible to send the request to mdmcert.download. Please try again in a few minutes.');
         }
 
-        // Salviamo tutto solo dopo che l'invio è andato a buon fine:
-        // resta "in attesa" finché non carichiamo il certificato
-        // firmato ottenuto da Apple (Step 2).
+        // We only save everything after the request succeeds:
+        // it stays "pending" until we upload the signed
+        // certificate obtained from Apple (Step 2).
         $company->update([
             'apns_private_key_pem' => $keyOut,
             'apns_csr_pending' => $csrOut,
@@ -127,14 +127,14 @@ class ApnsController extends Controller
         ]);
 
         return redirect()->route('apns.configure')
-            ->with('success', 'Richiesta inviata! Controlla la casella '.$data['email'].': mdmcert.download ti manderà il CSR firmato da caricare su identity.apple.com/pushcert.');
+            ->with('success', 'Request sent! Check the inbox for '.$data['email'].': mdmcert.download will send you the signed CSR to upload to identity.apple.com/pushcert.');
     }
 
     /**
-     * Step 2: riceve il certificato push (.pem) ottenuto da Apple dopo
-     * aver caricato su identity.apple.com/pushcert/ il CSR firmato
-     * ricevuto da mdmcert.download, lo verifica contro la chiave
-     * privata generata allo Step 1 e lo salva sull'azienda.
+     * Step 2: receives the push certificate (.pem) obtained from Apple
+     * after uploading the signed CSR received from mdmcert.download to
+     * identity.apple.com/pushcert/, verifies it against the private
+     * key generated in Step 1, and saves it on the company.
      */
     public function uploadCertificate(Request $request): RedirectResponse
     {
@@ -146,7 +146,7 @@ class ApnsController extends Controller
 
         if (empty($company->apns_private_key_pem)) {
             return redirect()->route('apns.configure')
-                ->with('error', 'Completa prima lo Step 1 qui sopra, poi torna a caricare il certificato firmato da Apple.');
+                ->with('error', 'Complete Step 1 above first, then come back and upload the certificate signed by Apple.');
         }
 
         $certPem = file_get_contents($data['certificate']->getRealPath());
@@ -155,17 +155,17 @@ class ApnsController extends Controller
 
         if (! $certInfo) {
             return redirect()->route('apns.configure')
-                ->with('error', 'Il file caricato non è un certificato .pem valido.');
+                ->with('error', 'The uploaded file is not a valid .pem certificate.');
         }
 
         if (! openssl_x509_check_private_key($certPem, $company->apns_private_key_pem)) {
             return redirect()->route('apns.configure')
-                ->with('error', 'Questo certificato non corrisponde alla richiesta generata da questa azienda. Assicurati di aver seguito lo Step 1 qui sopra prima di caricarlo.');
+                ->with('error', 'This certificate does not match the request generated by this company. Make sure you followed Step 1 above before uploading it.');
         }
 
-        // Il topic APNs per i profili MDM è tipicamente esposto nel
-        // campo UID (userIdentifier) del subject del certificato,
-        // es. "com.apple.mgmt.External.<UUID>".
+        // The APNs topic for MDM profiles is typically exposed in
+        // the UID (userIdentifier) field of the certificate subject,
+        // e.g. "com.apple.mgmt.External.<UUID>".
         $topic = $certInfo['subject']['UID'] ?? null;
         $expiresAt = Carbon::createFromTimestamp($certInfo['validTo_time_t']);
 
@@ -177,13 +177,13 @@ class ApnsController extends Controller
         ]);
 
         return redirect()->route('apns.configure')
-            ->with('success', 'Certificato push APNs configurato correttamente (valido fino al '.$expiresAt->format('d/m/Y').').');
+            ->with('success', 'APNs push certificate configured successfully (valid until '.$expiresAt->format('d/m/Y').').');
     }
 
     /**
-     * Genera il certificato "server" auto-firmato richiesto dall'API di
-     * mdmcert.download nel campo `encrypt` (usato dal servizio per
-     * cifrare eventuali dati sensibili nella risposta).
+     * Generates the self-signed "server" certificate required by the
+     * mdmcert.download API in the `encrypt` field (used by the service
+     * to encrypt any sensitive data in the response).
      */
     private function generateServerCertificate(Company $company): array
     {

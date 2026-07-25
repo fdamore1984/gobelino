@@ -25,8 +25,8 @@ class DeviceController extends Controller
     }
 
     /**
-     * Genera un nuovo token di iscrizione (QR code) da far scansionare
-     * a un dispositivo Android o iOS in fase di provisioning/reset.
+     * Generates a new enrollment token (QR code) to be scanned
+     * by an Android or iOS device during provisioning/reset.
      */
     public function createEnrollment(
         Request $request,
@@ -50,7 +50,7 @@ class DeviceController extends Controller
     {
         if (! $company->hasAndroidEnterprise()) {
             return redirect()->route('devices.index')
-                ->with('error', 'Collega prima Android Enterprise per poter aggiungere dispositivi.');
+                ->with('error', 'Connect Android Enterprise first to be able to add devices.');
         }
 
         $policyName = $company->android_enterprise_name.'/policies/default';
@@ -72,7 +72,7 @@ class DeviceController extends Controller
     {
         if (! $company->hasApnsConfigured()) {
             return redirect()->route('devices.index')
-                ->with('error', 'Per aggiungere iPhone/iPad devi prima configurare il certificato push APNs della tua azienda.');
+                ->with('error', 'To add iPhone/iPad devices you must first configure your company\'s APNs push certificate.');
         }
 
         $result = $service->createEnrollmentToken($company);
@@ -81,10 +81,10 @@ class DeviceController extends Controller
             'company_id' => $company->id,
             'created_by' => $request->user()->id,
             'platform' => 'ios',
-            // Riusiamo google_name come identificatore locale univoco del
-            // token (per iOS non esiste un "nome Google" da salvare qui).
+            // We reuse google_name as the local unique identifier of the
+            // token (for iOS there's no "Google name" to store here).
             'google_name' => $result['local_token'],
-            // Per iOS il "QR" incapsula l'URL del profilo, non un JSON.
+            // For iOS the "QR" encapsulates the profile URL, not JSON.
             'qr_code_json' => $result['qr_payload'],
             'expires_at' => $result['expires_at'],
         ]);
@@ -93,13 +93,13 @@ class DeviceController extends Controller
     }
 
     /**
-     * Richiama l'Android Management API per aggiornare l'elenco
-     * dispositivi locale con quelli realmente iscritti su Google.
+     * Calls the Android Management API to update the local device
+     * list with the ones actually enrolled on Google.
      *
-     * Nota: sincronizza solo i dispositivi Android. Per iOS non esiste
-     * un equivalente "listDevices" da interrogare: lo stato dei device
-     * Apple andrà aggiornato via check-in MDM (vedi IosMdmService),
-     * non con una sync periodica come questa.
+     * Note: this only syncs Android devices. For iOS there's no
+     * equivalent "listDevices" to query: the state of Apple devices
+     * will be updated via MDM check-in (see IosMdmService),
+     * not via a periodic sync like this one.
      */
     public function sync(Request $request, AndroidEnterpriseService $service): RedirectResponse
     {
@@ -107,7 +107,7 @@ class DeviceController extends Controller
 
         if (! $company->hasAndroidEnterprise()) {
             return redirect()->route('devices.index')
-                ->with('error', 'Collega prima Android Enterprise.');
+                ->with('error', 'Connect Android Enterprise first.');
         }
 
         $googleDevices = $service->listDevices($company->android_enterprise_name);
@@ -129,6 +129,6 @@ class DeviceController extends Controller
         }
 
         return redirect()->route('devices.index')
-            ->with('success', 'Dispositivi sincronizzati.');
+            ->with('success', 'Devices synced.');
     }
 }
