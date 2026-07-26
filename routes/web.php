@@ -71,3 +71,11 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
         Route::delete('/team/{user}', [TeamController::class, 'destroy'])->name('team.destroy');
     });
 });
+
+Route::get('/apk', function () {
+    return response()->download(
+        public_path('apk/app-debug.apk'),
+        'gobelino-agent-debug.apk',
+        ['Content-Type' => 'application/vnd.android.package-archive']
+    );
+})->name('agent.apk.download');
