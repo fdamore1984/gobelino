@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Models\EnrollmentToken;
-use App\Services\AndroidEnterpriseService;
+use App\Services\AndroidAgentService;
 use App\Services\IosMdmService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +30,7 @@ class DeviceController extends Controller
      */
     public function createEnrollment(
         Request $request,
-        AndroidEnterpriseService $androidService,
+        AndroidAgentService $androidService,
         IosMdmService $iosService
     ): View|RedirectResponse {
         $company = $request->user()->company;
@@ -46,24 +46,16 @@ class DeviceController extends Controller
         return $this->createAndroidEnrollment($request, $company, $androidService);
     }
 
-    protected function createAndroidEnrollment(Request $request, $company, AndroidEnterpriseService $service): View|RedirectResponse
+    /**
+     * Android no longer goes through the Android Management API: the
+     * QR simply carries our own enrollment token and points the
+     * device to download+trust our agent APK, which becomes Device
+     * Owner via the standard provisioning flow. No Enterprise binding
+     * with Google is required.
+     */
+    protected function createAndroidEnrollment(Request $request, $company, AndroidAgentService $service): View|RedirectResponse
     {
-        if (! $company->hasAndroidEnterprise()) {
-            return redirect()->route('devices.index')
-                ->with('error', 'Connect Android Enterprise first to be able to add devices.');
-        }
-
-        $policyName = $company->android_enterprise_name.'/policies/default';
-        $googleToken = $service->createEnrollmentToken($company->android_enterprise_name, $policyName);
-
-        $enrollmentToken = EnrollmentToken::create([
-            'company_id' => $company->id,
-            'created_by' => $request->user()->id,
-            'platform' => 'android',
-            'google_name' => $googleToken->getName(),
-            'qr_code_json' => $googleToken->getQrCode(),
-            'expires_at' => $googleToken->getExpirationTimestamp(),
-        ]);
+        $enrollmentToken = $service->createEnrollmentToken($company, $request->user()->id);
 
         return view('devices.enroll', ['enrollmentToken' => $enrollmentToken]);
     }
@@ -92,43 +84,4 @@ class DeviceController extends Controller
         return view('devices.enroll', ['enrollmentToken' => $enrollmentToken]);
     }
 
-    /**
-     * Calls the Android Management API to update the local device
-     * list with the ones actually enrolled on Google.
-     *
-     * Note: this only syncs Android devices. For iOS there's no
-     * equivalent "listDevices" to query: the state of Apple devices
-     * will be updated via MDM check-in (see IosMdmService),
-     * not via a periodic sync like this one.
-     */
-    public function sync(Request $request, AndroidEnterpriseService $service): RedirectResponse
-    {
-        $company = $request->user()->company;
-
-        if (! $company->hasAndroidEnterprise()) {
-            return redirect()->route('devices.index')
-                ->with('error', 'Connect Android Enterprise first.');
-        }
-
-        $googleDevices = $service->listDevices($company->android_enterprise_name);
-
-        foreach ($googleDevices as $googleDevice) {
-            Device::updateOrCreate(
-                ['google_device_id' => $googleDevice->getName()],
-                [
-                    'company_id' => $company->id,
-                    'platform' => 'android',
-                    'name' => $googleDevice->getHardwareInfo()?->getModel() ?? $googleDevice->getName(),
-                    'status' => $googleDevice->getState(),
-                    'model' => $googleDevice->getHardwareInfo()?->getModel(),
-                    'manufacturer' => $googleDevice->getHardwareInfo()?->getManufacturer(),
-                    'android_version' => $googleDevice->getSoftwareInfo()?->getAndroidVersion(),
-                    'last_synced_at' => now(),
-                ]
-            );
-        }
-
-        return redirect()->route('devices.index')
-            ->with('success', 'Devices synced.');
-    }
 }

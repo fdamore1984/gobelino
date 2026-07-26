@@ -41,4 +41,17 @@ return [
         'server_key' => env('MDMCERT_SERVER_KEY'),
     ],
 
+    // Our own Android agent APK (Device Owner + polling), used to
+    // build the QR provisioning payload in AndroidAgentService.
+    'agent' => [
+        // e.g. com.gobelino.agent/.receiver.AgentDeviceAdminReceiver
+        'admin_component' => env('AGENT_ADMIN_COMPONENT'),
+        // Public HTTPS URL where the signed APK is hosted for download
+        // during provisioning (must stay reachable and unauthenticated).
+        'apk_download_url' => env('AGENT_APK_DOWNLOAD_URL'),
+        // SHA-256 of the APK, URL-safe base64 without padding. Update
+        // this every time a new APK build is published.
+        'apk_checksum' => env('AGENT_APK_CHECKSUM'),
+    ],
+
 ];

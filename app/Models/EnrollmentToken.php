@@ -15,10 +15,21 @@ class EnrollmentToken extends Model
         'created_by',
         'platform',
         'google_name',
+        'token',
+        'apk_checksum',
         'qr_code_json',
         'expires_at',
         'used',
     ];
+
+    /**
+     * Consumes the token: marks it used, so it can't be redeemed by a
+     * second device.
+     */
+    public function markUsed(): void
+    {
+        $this->update(['used' => true]);
+    }
 
     protected function casts(): array
     {

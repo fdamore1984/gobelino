@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Gobelino Agent</string>
+    <string name="status_not_provisioned">Not provisioned. Scan the enrollment QR code on the setup screen.</string>
+    <string name="status_enrolling">Provisioning received, completing enrollment…</string>
+    <string name="status_enrolled">Device managed by Gobelino.</string>
+</resources>
