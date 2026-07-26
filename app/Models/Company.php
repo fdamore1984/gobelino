@@ -15,8 +15,6 @@ class Company extends Model
         'subscription_status',
         'trial_ends_at',
         'payment_provider_customer_id',
-        'android_enterprise_name',
-        'android_signup_url_name',
         'apns_certificate_pem',
         'apns_private_key_pem',
         'apns_topic',
@@ -83,15 +81,6 @@ class Company extends Model
     public function hasAccess(): bool
     {
         return $this->onTrial() || $this->subscribed();
-    }
-
-    /**
-     * True if the company has already connected its Android Enterprise.
-     * Until it does, it can't add devices.
-     */
-    public function hasAndroidEnterprise(): bool
-    {
-        return ! empty($this->android_enterprise_name);
     }
 
     /**

@@ -1,0 +1,55 @@
+package com.gobelino.agent.net
+
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+
+private val JSON = "application/json; charset=utf-8".toMediaType()
+
+/**
+ * Thin wrapper around the two endpoints exposed by
+ * routes/api.php + Api\DeviceAgentController on the backend.
+ */
+class ApiClient(private val baseUrl: String) {
+
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .build()
+
+    /** POST /api/agent/enroll — trades the one-time QR token for a device_token. */
+    fun enroll(enrollmentToken: String, deviceInfo: JSONObject): JSONObject {
+        deviceInfo.put("enrollment_token", enrollmentToken)
+
+        val request = Request.Builder()
+            .url("$baseUrl/api/agent/enroll")
+            .post(deviceInfo.toString().toRequestBody(JSON))
+            .build()
+
+        http.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) throw ApiException(response.code, body)
+            return JSONObject(body)
+        }
+    }
+
+    /** POST /api/agent/poll — heartbeat + fetch/ack of commands. */
+    fun poll(deviceToken: String, status: JSONObject): JSONObject {
+        val request = Request.Builder()
+            .url("$baseUrl/api/agent/poll")
+            .addHeader("X-Device-Token", deviceToken)
+            .post(status.toString().toRequestBody(JSON))
+            .build()
+
+        http.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) throw ApiException(response.code, body)
+            return JSONObject(body)
+        }
+    }
+}
+
+class ApiException(val code: Int, message: String) : Exception("HTTP $code: $message")

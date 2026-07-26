@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\AndroidEnterpriseController;
 use App\Http\Controllers\ApnsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\DeviceCommandController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\IosMdmController;
 use App\Http\Controllers\ProfileController;
@@ -45,12 +45,6 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'subscription.active'])->group(function () {
     Route::view('/dashboard', 'dashboard')->name('dashboard');
 
-    // Android Enterprise connection
-    Route::get('/android-enterprise/connect', [AndroidEnterpriseController::class, 'create'])
-        ->name('android-enterprise.connect');
-    Route::get('/android-enterprise/callback', [AndroidEnterpriseController::class, 'callback'])
-        ->name('android-enterprise.callback');
-
     // APNs push certificate configuration (needed for iPhone/iPad)
     Route::get('/apns/configure', [ApnsController::class, 'show'])
         ->name('apns.configure');
@@ -62,7 +56,7 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
     // Devices
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::post('/devices/enroll', [DeviceController::class, 'createEnrollment'])->name('devices.enroll');
-    Route::post('/devices/sync', [DeviceController::class, 'sync'])->name('devices.sync');
+    Route::post('/devices/{device}/commands', [DeviceCommandController::class, 'store'])->name('devices.commands.store');
 
     // User profile
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
