@@ -64,14 +64,15 @@ class AndroidAgentService
             'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE' => $adminExtras,
         ];
 
-        return EnrollmentToken::create([
-            'company_id' => $company->id,
-            'created_by' => $createdByUserId,
-            'platform' => 'android',
-            'token' => $token,
-            'apk_checksum' => $this->apkChecksum,
-            'qr_code_json' => json_encode($qrPayload),
-            'expires_at' => now()->addHours(2),
-        ]);
+	return EnrollmentToken::create([
+	    'company_id' => $company->id,
+	    'created_by' => $createdByUserId,
+	    'platform' => 'android',
+	    'google_name' => '',
+	    'token' => $token,
+	    'apk_checksum' => $this->apkChecksum,
+	    'qr_code_json' => json_encode($qrPayload),
+	    'expires_at' => now()->addHours(2),
+	])     
     }
 }
