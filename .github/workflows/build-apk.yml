@@ -28,3 +28,19 @@ jobs:
         with:
           name: app-debug
           path: android-agent/app/build/outputs/apk/debug/app-debug.apk
+      
+      - name: Compute signature checksum
+        working-directory: android-agent/app/build/outputs/apk/debug
+        run: |
+          CERT_FILE=$(unzip -Z1 app-debug.apk | grep -E 'META-INF/.*\.(RSA|DSA|EC)$' | head -n1)
+          unzip -p app-debug.apk "$CERT_FILE" > cert.raw
+          openssl pkcs7 -in cert.raw -inform DER -print_certs -out cert.pem
+          openssl x509 -in cert.pem -outform DER -out cert.der
+          CHECKSUM=$(openssl dgst -binary -sha256 cert.der | openssl base64 | tr '+/' '-_' | tr -d '=')
+          echo "Signature checksum: $CHECKSUM"
+          echo "$CHECKSUM" > checksum.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: checksum
+          path: android-agent/app/build/outputs/apk/debug/checksum.txt
