@@ -72,7 +72,7 @@ class AndroidAgentService
 	    'token' => $token,
 	    'apk_checksum' => $this->apkChecksum,
 	    'qr_code_json' => json_encode($qrPayload),
-	    'expires_at' => now()->addHours(2),
+	    'expires_at' => now()->addHours(24),
 	]);     
     }
 }
