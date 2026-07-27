@@ -3,6 +3,7 @@ package com.gobelino.agent.receiver
 import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.os.Bundle
+import com.gobelino.agent.util.Prefs
 
 class ProvisioningActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
