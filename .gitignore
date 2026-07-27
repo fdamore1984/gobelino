@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Gradle
+.gradle/
+build/
+
+# Android build outputs
+app/build/
