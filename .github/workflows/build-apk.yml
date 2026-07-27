@@ -1,9 +1,11 @@
 name: Build Android Agent APK
+
 on:
   push:
     paths:
       - 'android-agent/**'
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,15 +13,19 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Grant execute permission for gradlew
         run: chmod +x android-agent/gradlew
+
       - name: Build debug APK
         working-directory: android-agent
         run: ./gradlew assembleDebug
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
@@ -36,10 +42,20 @@ jobs:
           echo "Signature checksum: $CHECKSUM"
           echo "$CHECKSUM" > checksum.txt
           echo "APK_CHECKSUM=$CHECKSUM" >> "$GITHUB_ENV"
+
       - uses: actions/upload-artifact@v4
         with:
           name: checksum
           path: android-agent/app/build/outputs/apk/debug/checksum.txt
+
+      # --- NUOVO: aggiorna la variabile d'ambiente su Railway (PRIMA del push, cosi' il deploy finale la trova gia' corretta) ---
+      - name: Setup Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Update APK checksum on Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway variables --set "AGENT_APK_CHECKSUM=$APK_CHECKSUM" --service web
 
       # --- NUOVO: pubblica l'APK sul repo cosi' Railway lo re-deploya ---
       - name: Copy APK into Laravel public folder
@@ -52,12 +68,3 @@ jobs:
           git add public/apk/app-debug.apk
           git commit -m "chore: aggiorna APK debug [skip ci]" || echo "Nessuna modifica da committare"
           git push
-
-      # --- NUOVO: aggiorna la variabile d'ambiente su Railway ---
-      - name: Setup Railway CLI
-        run: npm i -g @railway/cli
-
-      - name: Update APK checksum on Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway variables --set "AGENT_APK_CHECKSUM=$APK_CHECKSUM" --service web
