@@ -29,6 +29,20 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".receiver.ProvisioningActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- Device Admin: this is what makes Device Owner mode possible
              without any Android Enterprise / Google EMM binding. -->
         <receiver
