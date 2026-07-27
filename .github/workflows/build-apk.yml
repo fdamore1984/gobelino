@@ -58,4 +58,4 @@ jobs:
       - name: Update APK checksum on Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway variables --set "APK_CHECKSUM=$APK_CHECKSUM" --service gobelino
+        run: railway variables --set "AGENT_APK_CHECKSUM=$APK_CHECKSUM" --service gobelino
