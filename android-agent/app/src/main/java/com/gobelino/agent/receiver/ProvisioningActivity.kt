@@ -9,14 +9,21 @@ class ProvisioningActivity : Activity() {
         super.onCreate(savedInstanceState)
         when (intent?.action) {
             DevicePolicyManager.ACTION_GET_PROVISIONING_MODE -> {
-                val result = intent.getParcelableExtra<android.content.Intent>(
-                    DevicePolicyManager.EXTRA_PROVISIONING_MODE
-                ) ?: android.content.Intent()
-                result.putExtra(
-                    DevicePolicyManager.EXTRA_PROVISIONING_MODE,
-                    DevicePolicyManager.PROVISIONING_MODE_FULLY_MANAGED_DEVICE
-                )
-                setResult(RESULT_OK, result)
+    // Salva subito gli extra: qui sono garantiti presenti.
+    val extras = intent.getBundleExtra(
+        DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE
+    )
+    extras?.getString("server_url")?.let { Prefs.of(this).serverUrl = it }
+    extras?.getString("enrollment_token")?.let { Prefs.of(this).pendingEnrollmentToken = it }
+
+    val result = intent.getParcelableExtra<android.content.Intent>(
+        DevicePolicyManager.EXTRA_PROVISIONING_MODE
+    ) ?: android.content.Intent()
+    result.putExtra(
+        DevicePolicyManager.EXTRA_PROVISIONING_MODE,
+        DevicePolicyManager.PROVISIONING_MODE_FULLY_MANAGED_DEVICE
+    )
+    setResult(RESULT_OK, result)
             }
             DevicePolicyManager.ACTION_ADMIN_POLICY_COMPLIANCE -> {
                 setResult(RESULT_OK)
