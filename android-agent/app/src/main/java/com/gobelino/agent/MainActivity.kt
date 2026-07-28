@@ -39,20 +39,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var commandsAdapter: ArrayAdapter<String>
 
     private var pendingSyncId: UUID? = null
-    private val syncObserver: Observer<WorkInfo?> = Observer { info ->
-        if (info == null) return@Observer
-        if (info.state.isFinished) {
-            forceSyncButton.isEnabled = true
-            forceSyncButton.setText(R.string.action_force_sync)
-            Toast.makeText(
-                this,
-                if (info.state == WorkInfo.State.SUCCEEDED) R.string.sync_success else R.string.sync_failed,
-                Toast.LENGTH_SHORT
-            ).show()
-            updateStatus()
-            refreshCommandsList()
-            pendingSyncId?.let { WorkManager.getInstance(this).getWorkInfoByIdLiveData(it).removeObserver(syncObserver) }
-            pendingSyncId = null
+    private val syncObserver = object : Observer<WorkInfo?> {
+        override fun onChanged(value: WorkInfo?) {
+            val info = value ?: return
+            
+            if (info.state.isFinished) {
+                forceSyncButton.isEnabled = true
+                forceSyncButton.setText(R.string.action_force_sync)
+                Toast.makeText(
+                    this@MainActivity, // <-- NOTA: Ora serve this@MainActivity per il Context
+                    if (info.state == WorkInfo.State.SUCCEEDED) R.string.sync_success else R.string.sync_failed,
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateStatus()
+                refreshCommandsList()
+                
+                // Usiamo 'this' invece di 'syncObserver' per rimuovere l'osservatore
+                pendingSyncId?.let { 
+                    WorkManager.getInstance(this@MainActivity).getWorkInfoByIdLiveData(it).removeObserver(this) 
+                }
+                pendingSyncId = null
+            }
         }
     }
 
