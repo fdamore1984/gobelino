@@ -67,4 +67,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/apk/app-debug.apk
           git commit -m "chore: aggiorna APK debug [skip ci]" || echo "Nessuna modifica da committare"
+          
+          # Scarica e allinea eventuali modifiche remote per evitare l'errore di push respinto
+          git pull origin main --rebase
+          
           git push
