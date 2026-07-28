@@ -6,12 +6,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.gobelino.agent.util.Prefs
-import com.gobelino.agent.worker.PollWorker
-import java.util.concurrent.TimeUnit
+import com.gobelino.agent.worker.PollScheduler
 
 /**
  * This is the actual "Device Owner" hook. Android sets this app as
@@ -60,15 +56,6 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
     }
 
     private fun schedulePolling(context: Context) {
-        val interval = Prefs.of(context).pollIntervalSeconds.coerceAtLeast(60)
-
-        val request = PeriodicWorkRequestBuilder<PollWorker>(interval.toLong(), TimeUnit.SECONDS)
-            .build()
-
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "agent-poll",
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request
-        )
+        PollScheduler.scheduleNow(context)
     }
 }
