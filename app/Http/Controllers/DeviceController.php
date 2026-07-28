@@ -16,7 +16,10 @@ class DeviceController extends Controller
     public function index(Request $request): View
     {
         $company = $request->user()->company;
-        $devices = $company->devices()->latest()->get();
+        $devices = $company->devices()
+            ->with(['commands' => fn ($q) => $q->latest()->limit(10)])
+            ->latest()
+            ->get();
 
         return view('devices.index', [
             'devices' => $devices,
