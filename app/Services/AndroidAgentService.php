@@ -18,8 +18,9 @@ use Illuminate\Support\Str;
 class AndroidAgentService
 {
     /**
-     * Fully-qualified DeviceAdminReceiver component of the agent APK,
-     * e.g. "com.gobelino.agent/.receiver.AgentDeviceAdminReceiver".
+     * Fully-qualified DeviceAdminReceiver component of the agent APK.
+     * MUST be the absolute path (e.g. "com.gobelino.agent/com.gobelino.agent.receiver.AgentDeviceAdminReceiver")
+     * to avoid Device Owner provisioning errors.
      */
     protected string $adminComponent;
 
@@ -34,7 +35,10 @@ class AndroidAgentService
 
     public function __construct()
     {
-        $this->adminComponent = config('services.agent.admin_component');
+        // Forziamo il Fully Qualified Class Name bypassando il file .env
+        // per prevenire errori di validazione durante l'enrollment.
+        $this->adminComponent = 'com.gobelino.agent/com.gobelino.agent.receiver.AgentDeviceAdminReceiver';
+        
         $this->apkChecksum = config('services.agent.apk_checksum');
         $this->apkDownloadUrl = config('services.agent.apk_download_url');
     }
@@ -58,21 +62,22 @@ class AndroidAgentService
         $qrPayload = [
             'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME' => $this->adminComponent,
             'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION' => $this->apkDownloadUrl,
-            'android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM' => $this->apkChecksum,
+            // Assicurati che apkChecksum sia l'hash del file, non della firma
+            'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM' => $this->apkChecksum,
             'android.app.extra.PROVISIONING_SKIP_ENCRYPTION' => true,
             'android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED' => true,
             'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE' => $adminExtras,
         ];
 
-	return EnrollmentToken::create([
-	    'company_id' => $company->id,
-	    'created_by' => $createdByUserId,
-	    'platform' => 'android',
-	    'google_name' => '',
-	    'token' => $token,
-	    'apk_checksum' => $this->apkChecksum,
-	    'qr_code_json' => json_encode($qrPayload),
-	    'expires_at' => now()->addHours(24),
-	]);     
+        return EnrollmentToken::create([
+            'company_id' => $company->id,
+            'created_by' => $createdByUserId,
+            'platform' => 'android',
+            'google_name' => '',
+            'token' => $token,
+            'apk_checksum' => $this->apkChecksum,
+            'qr_code_json' => json_encode($qrPayload),
+            'expires_at' => now()->addHours(24),
+        ]);     
     }
 }
