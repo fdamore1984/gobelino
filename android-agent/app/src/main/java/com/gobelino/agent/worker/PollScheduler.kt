@@ -3,7 +3,9 @@ package com.gobelino.agent.worker
 import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -45,5 +47,26 @@ object PollScheduler {
             ExistingWorkPolicy.KEEP,
             request
         )
+    }
+
+    /**
+     * Manual "forza connessione" button in MainActivity: unlike
+     * scheduleNow(), this uses REPLACE so it cancels any pending wait
+     * and runs right away, and requests expedited execution so it
+     * isn't subject to WorkManager's normal battery-saver delays.
+     * Returns the request id so the caller can observe completion.
+     */
+    fun forceNow(context: Context): UUID {
+        val request = OneTimeWorkRequestBuilder<PollWorker>()
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request
+        )
+
+        return request.id
     }
 }

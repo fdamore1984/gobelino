@@ -48,13 +48,16 @@ object CommandExecutor {
 
                 else -> {
                     CommandResultStore.enqueue(context, id, "failed", "unknown_command_type")
+                    CommandHistoryStore.record(context, id, type, "failed", "unknown_command_type")
                     return
                 }
             }
 
             CommandResultStore.enqueue(context, id, "acked", null)
+            CommandHistoryStore.record(context, id, type, "acked", null)
         } catch (e: Exception) {
             CommandResultStore.enqueue(context, id, "failed", e.message)
+            CommandHistoryStore.record(context, id, type, "failed", e.message)
         }
     }
 }

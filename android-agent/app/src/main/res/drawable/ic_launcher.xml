@@ -1,12 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Logo Gobelino, portato 1:1 da public/images/goblin-icon.svg (stesso
+  artwork usato sul pannello web) convertendo circle/ellipse in path
+  data, dato che i vector drawable Android non supportano quei tag.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- sfondo tondo -->
     <path
-        android:fillColor="#1B5E20"
-        android:pathData="M0,0h108v108h-108z" />
+        android:fillColor="#166534"
+        android:pathData="M2,50 A48,48 0 1,0 98,50 A48,48 0 1,0 2,50 Z" />
+
+    <!-- orecchie -->
+    <path
+        android:fillColor="#4ade80"
+        android:pathData="M20,40 L5,20 L30,32 Z" />
+    <path
+        android:fillColor="#4ade80"
+        android:pathData="M80,40 L95,20 L70,32 Z" />
+
+    <!-- viso -->
+    <path
+        android:fillColor="#4ade80"
+        android:pathData="M20,55 A30,26 0 1,0 80,55 A30,26 0 1,0 20,55 Z" />
+
+    <!-- occhi -->
+    <path
+        android:fillColor="#052e16"
+        android:pathData="M31,52 A7,9 0 1,0 45,52 A7,9 0 1,0 31,52 Z" />
+    <path
+        android:fillColor="#052e16"
+        android:pathData="M55,52 A7,9 0 1,0 69,52 A7,9 0 1,0 55,52 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,24 L74,54 L54,84 L34,54 Z" />
+        android:pathData="M38,49 A2,2 0 1,0 42,49 A2,2 0 1,0 38,49 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,49 A2,2 0 1,0 66,49 A2,2 0 1,0 62,49 Z" />
+
+    <!-- naso -->
+    <path
+        android:fillColor="#052e16"
+        android:pathData="M46,60 Q50,68 54,60 Z" />
+
+    <!-- bocca -->
+    <path
+        android:strokeColor="#052e16"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M35,68 Q50,80 65,68" />
+
+    <!-- zanne -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,69 L42,76 L45,69 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,69 L58,76 L55,69 Z" />
 </vector>
