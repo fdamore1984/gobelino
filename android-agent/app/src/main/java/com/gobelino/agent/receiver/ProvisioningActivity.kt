@@ -11,7 +11,7 @@ class ProvisioningActivity : Activity() {
         when (intent?.action) {
             DevicePolicyManager.ACTION_GET_PROVISIONING_MODE -> {
                 // Salva subito gli extra: qui sono garantiti presenti.
-                val extras = intent.getBundleExtra(
+                val extras = intent.getParcelableExtra<android.os.PersistableBundle>(
                     DevicePolicyManager.EXTRA_PROVISIONING_ADMIN_EXTRAS_BUNDLE
                 )
                 extras?.getString("server_url")?.let { Prefs.of(this).serverUrl = it }
