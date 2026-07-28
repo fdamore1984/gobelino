@@ -120,4 +120,18 @@ class DeviceController extends Controller
         return view('devices.enroll', ['enrollmentToken' => $enrollmentToken]);
     }
 
+    /**
+     * Removes a device from the panel (e.g. stale duplicates left
+     * behind by repeated test enrollments). Doesn't wipe/unenroll the
+     * physical device itself — just forgets it here.
+     */
+    public function destroy(Request $request, Device $device): RedirectResponse
+    {
+        abort_unless($device->company_id === $request->user()->company_id, 403);
+
+        $device->delete();
+
+        return redirect()->route('devices.index')->with('success', 'Device removed.');
+    }
+
 }

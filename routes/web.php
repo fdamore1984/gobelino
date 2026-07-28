@@ -57,6 +57,7 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
     Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
     Route::get('/devices/status', [DeviceController::class, 'status'])->name('devices.status');
     Route::post('/devices/enroll', [DeviceController::class, 'createEnrollment'])->name('devices.enroll');
+    Route::delete('/devices/{device}', [DeviceController::class, 'destroy'])->name('devices.destroy');
     Route::post('/devices/{device}/commands', [DeviceCommandController::class, 'store'])->name('devices.commands.store');
 
     // User profile

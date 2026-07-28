@@ -98,7 +98,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </button>
-                                <div id="queue-{{ $device->id }}" class="hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm">
+                                <div id="queue-{{ $device->id }}" class="gobelino-popover hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm">
                                     <div class="px-3 py-2 border-b text-xs font-medium text-gray-500">Command queue</div>
                                     <div id="queue-list-{{ $device->id }}">
                                         @include('devices.partials.queue-list', ['commands' => $device->commands])
@@ -116,7 +116,7 @@
                                         <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
                                     </svg>
                                 </button>
-                                <div id="actions-{{ $device->id }}" class="hidden absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm overflow-hidden">
+                                <div id="actions-{{ $device->id }}" class="gobelino-popover hidden absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm overflow-hidden">
                                     <form method="POST" action="{{ route('devices.commands.store', $device) }}">
                                         @csrf
                                         <input type="hidden" name="type" value="lock">
@@ -140,13 +140,32 @@
                                         <input type="hidden" name="type" value="wipe">
                                         <button type="submit" class="w-full text-left px-3 py-2 text-red-700 hover:bg-red-50">Wipe</button>
                                     </form>
+                                    <form method="POST" action="{{ route('devices.destroy', $device) }}"
+                                          class="border-t border-gray-100"
+                                          onsubmit="return confirm('Remove this device from the panel? This only forgets it here, it does not wipe the physical device.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="w-full text-left px-3 py-2 text-red-700 hover:bg-red-50">Remove device</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
                     @else
-                        <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 self-start">
-                            {{ $device->status }}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 self-start">
+                                {{ $device->status }}
+                            </span>
+                            <form method="POST" action="{{ route('devices.destroy', $device) }}"
+                                  onsubmit="return confirm('Remove this device from the panel?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" title="Remove device" class="p-1.5 rounded-lg border border-gray-300 text-red-700 hover:bg-red-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M5 7h14" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
                     @endif
                 </div>
             @endforeach
@@ -157,17 +176,17 @@
         function gobelinoToggle(id) {
             const panel = document.getElementById(id);
             const isOpen = !panel.classList.contains('hidden');
-            document.querySelectorAll('[id^="queue-"], [id^="actions-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
             if (!isOpen) panel.classList.remove('hidden');
         }
         document.addEventListener('click', function (event) {
-            if (!event.target.closest('[onclick^="gobelinoToggle"]') && !event.target.closest('[id^="queue-"], [id^="actions-"]')) {
-                document.querySelectorAll('[id^="queue-"], [id^="actions-"]').forEach(el => el.classList.add('hidden'));
+            if (!event.target.closest('[onclick^="gobelinoToggle"]') && !event.target.closest('.gobelino-popover')) {
+                document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
             }
         });
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
-                document.querySelectorAll('[id^="queue-"], [id^="actions-"]').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
             }
         });
 
