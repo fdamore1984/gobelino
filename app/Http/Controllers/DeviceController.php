@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\DeviceCommand;
 use App\Models\EnrollmentToken;
 use App\Services\AndroidAgentService;
 use App\Services\IosMdmService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,6 +26,37 @@ class DeviceController extends Controller
         return view('devices.index', [
             'devices' => $devices,
             'company' => $company,
+        ]);
+    }
+
+    /**
+     * Polled every few seconds by the devices page (see index.blade.php)
+     * to refresh device status and the command queue without a full
+     * page reload / F5.
+     */
+    public function status(Request $request): JsonResponse
+    {
+        $company = $request->user()->company;
+        $devices = $company->devices()
+            ->with(['commands' => fn ($q) => $q->latest()->limit(10)])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'devices' => $devices->map(fn (Device $device) => [
+                'id' => $device->id,
+                'online' => $device->isAndroid() ? $device->isOnline() : null,
+                'kiosk_enabled' => $device->kiosk_enabled,
+                'battery_level' => $device->battery_level,
+                'serial_number' => $device->serial_number,
+                'last_poll_at_human' => $device->last_poll_at?->diffForHumans(),
+                'commands' => $device->commands->map(fn (DeviceCommand $command) => [
+                    'id' => $command->id,
+                    'type' => $command->type,
+                    'status' => $command->status,
+                    'created_at_human' => $command->created_at->diffForHumans(),
+                ]),
+            ]),
         ]);
     }
 

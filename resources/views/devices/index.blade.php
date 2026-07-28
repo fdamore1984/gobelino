@@ -59,12 +59,14 @@
                             {{ $device->name ?? 'Unnamed device' }}
                             <span class="text-[10px] uppercase tracking-wide text-gray-400 ml-1">{{ $device->platform }}</span>
                             @if ($device->isAndroid())
-                                <span class="text-[10px] px-1.5 py-0.5 rounded-full ml-1 {{ $device->isOnline() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500' }}">
+                                <span id="online-badge-{{ $device->id }}"
+                                      class="text-[10px] px-1.5 py-0.5 rounded-full ml-1 {{ $device->isOnline() ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500' }}">
                                     {{ $device->isOnline() ? 'online' : 'offline' }}
                                 </span>
-                                @if ($device->kiosk_enabled)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full ml-1 bg-blue-100 text-blue-800">kiosk</span>
-                                @endif
+                                <span id="kiosk-badge-{{ $device->id }}"
+                                      class="text-[10px] px-1.5 py-0.5 rounded-full ml-1 bg-blue-100 text-blue-800 {{ $device->kiosk_enabled ? '' : 'hidden' }}">
+                                    kiosk
+                                </span>
                             @endif
                         </p>
                         <p class="text-xs text-gray-500">
@@ -72,11 +74,14 @@
                             @if ($device->android_version)
                                 · Android {{ $device->android_version }}
                             @endif
-                            @if ($device->isAndroid() && $device->last_poll_at)
-                                · last check-in {{ $device->last_poll_at->diffForHumans() }}
+                            @if ($device->isAndroid())
+                                · S/N <span id="serial-{{ $device->id }}">{{ $device->serial_number ?? '—' }}</span>
+                                @if ($device->last_poll_at)
+                                    · last check-in <span id="last-checkin-{{ $device->id }}">{{ $device->last_poll_at->diffForHumans() }}</span>
+                                @endif
                             @endif
                             @if ($device->battery_level !== null)
-                                · {{ $device->battery_level }}% battery
+                                · <span id="battery-{{ $device->id }}">{{ $device->battery_level }}</span>% battery
                             @endif
                         </p>
                     </div>
@@ -95,30 +100,9 @@
                                 </button>
                                 <div id="queue-{{ $device->id }}" class="hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm">
                                     <div class="px-3 py-2 border-b text-xs font-medium text-gray-500">Command queue</div>
-                                    @if ($device->commands->isEmpty())
-                                        <p class="px-3 py-3 text-xs text-gray-400">No commands sent yet.</p>
-                                    @else
-                                        <ul class="max-h-64 overflow-y-auto divide-y">
-                                            @foreach ($device->commands as $command)
-                                                <li class="px-3 py-2 flex items-center justify-between gap-2">
-                                                    <div>
-                                                        <p class="text-gray-800 capitalize">{{ str_replace('_', ' ', $command->type) }}</p>
-                                                        <p class="text-[11px] text-gray-400">{{ $command->created_at->diffForHumans() }}</p>
-                                                    </div>
-                                                    @php
-                                                        $statusMap = [
-                                                            'pending' => ['In coda', 'bg-gray-100 text-gray-600'],
-                                                            'sent' => ['In coda', 'bg-yellow-100 text-yellow-800'],
-                                                            'acked' => ['Consegnato', 'bg-green-100 text-green-800'],
-                                                            'failed' => ['Fallito', 'bg-red-100 text-red-700'],
-                                                        ];
-                                                        [$label, $classes] = $statusMap[$command->status] ?? [$command->status, 'bg-gray-100 text-gray-600'];
-                                                    @endphp
-                                                    <span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap {{ $classes }}">{{ $label }}</span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    @endif
+                                    <div id="queue-list-{{ $device->id }}">
+                                        @include('devices.partials.queue-list', ['commands' => $device->commands])
+                                    </div>
                                 </div>
                             </div>
 
@@ -146,7 +130,7 @@
                                     <form method="POST" action="{{ route('devices.commands.store', $device) }}">
                                         @csrf
                                         <input type="hidden" name="type" value="set_kiosk">
-                                        <button type="submit" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50">
+                                        <button type="submit" id="kiosk-action-label-{{ $device->id }}" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50">
                                             {{ $device->kiosk_enabled ? 'Disable kiosk' : 'Enable kiosk' }}
                                         </button>
                                     </form>
@@ -186,5 +170,67 @@
                 document.querySelectorAll('[id^="queue-"], [id^="actions-"]').forEach(el => el.classList.add('hidden'));
             }
         });
+
+        // --- Live refresh: polls /devices/status every few seconds and
+        // patches the DOM in place, no F5 needed. Doesn't touch open
+        // popovers' visibility, only their content, so it won't
+        // interrupt someone mid-click.
+        const GOBELINO_STATUS_LABELS = {
+            pending: ['In coda', 'bg-gray-100 text-gray-600'],
+            sent: ['Consegnato', 'bg-yellow-100 text-yellow-800'],
+            acked: ['Eseguito', 'bg-green-100 text-green-800'],
+            failed: ['Fallito', 'bg-red-100 text-red-700'],
+        };
+
+        function gobelinoRenderQueue(commands) {
+            if (!commands.length) {
+                return '<p class="px-3 py-3 text-xs text-gray-400">No commands sent yet.</p>';
+            }
+            return '<ul class="max-h-64 overflow-y-auto divide-y">' + commands.map(function (command) {
+                const [label, classes] = GOBELINO_STATUS_LABELS[command.status] || [command.status, 'bg-gray-100 text-gray-600'];
+                const typeLabel = command.type.replace(/_/g, ' ');
+                return '<li class="px-3 py-2 flex items-center justify-between gap-2">' +
+                    '<div><p class="text-gray-800 capitalize">' + typeLabel + '</p>' +
+                    '<p class="text-[11px] text-gray-400">' + command.created_at_human + '</p></div>' +
+                    '<span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ' + classes + '">' + label + '</span>' +
+                    '</li>';
+            }).join('') + '</ul>';
+        }
+
+        function gobelinoRefreshDevices() {
+            fetch('{{ route('devices.status') }}', { headers: { 'Accept': 'application/json' } })
+                .then(res => res.ok ? res.json() : Promise.reject())
+                .then(data => {
+                    data.devices.forEach(function (device) {
+                        const onlineBadge = document.getElementById('online-badge-' + device.id);
+                        if (onlineBadge && device.online !== null) {
+                            onlineBadge.textContent = device.online ? 'online' : 'offline';
+                            onlineBadge.className = 'text-[10px] px-1.5 py-0.5 rounded-full ml-1 ' +
+                                (device.online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500');
+                        }
+
+                        const kioskBadge = document.getElementById('kiosk-badge-' + device.id);
+                        if (kioskBadge) kioskBadge.classList.toggle('hidden', !device.kiosk_enabled);
+
+                        const kioskLabel = document.getElementById('kiosk-action-label-' + device.id);
+                        if (kioskLabel) kioskLabel.textContent = device.kiosk_enabled ? 'Disable kiosk' : 'Enable kiosk';
+
+                        const serialEl = document.getElementById('serial-' + device.id);
+                        if (serialEl && device.serial_number) serialEl.textContent = device.serial_number;
+
+                        const lastCheckinEl = document.getElementById('last-checkin-' + device.id);
+                        if (lastCheckinEl && device.last_poll_at_human) lastCheckinEl.textContent = device.last_poll_at_human;
+
+                        const batteryEl = document.getElementById('battery-' + device.id);
+                        if (batteryEl && device.battery_level !== null) batteryEl.textContent = device.battery_level;
+
+                        const queueList = document.getElementById('queue-list-' + device.id);
+                        if (queueList) queueList.innerHTML = gobelinoRenderQueue(device.commands);
+                    });
+                })
+                .catch(() => { /* transient network hiccup: just try again next tick */ });
+        }
+
+        setInterval(gobelinoRefreshDevices, 8000);
     </script>
 @endsection

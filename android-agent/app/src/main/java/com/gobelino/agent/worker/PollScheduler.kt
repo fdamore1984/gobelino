@@ -18,10 +18,12 @@ import java.util.concurrent.TimeUnit
 object PollScheduler {
     private const val WORK_NAME = "agent-poll"
 
-    /** Schedules the next check-in `delaySeconds` from now. */
+    /** Schedules the next check-in `delaySeconds` from now (min. 10s — the
+     *  15s "just executed a command, report back fast" follow-up needs to
+     *  fit under this, unlike the normal ~60s interval). */
     fun scheduleNext(context: Context, delaySeconds: Int) {
         val request = OneTimeWorkRequestBuilder<PollWorker>()
-            .setInitialDelay(delaySeconds.coerceAtLeast(60).toLong(), TimeUnit.SECONDS)
+            .setInitialDelay(delaySeconds.coerceAtLeast(10).toLong(), TimeUnit.SECONDS)
             .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(

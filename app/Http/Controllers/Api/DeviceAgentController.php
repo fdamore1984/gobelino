@@ -92,6 +92,7 @@ class DeviceAgentController extends Controller
             'battery_level' => ['nullable', 'integer', 'min:0', 'max:100'],
             'android_version' => ['nullable', 'string'],
             'agent_app_version' => ['nullable', 'string'],
+            'serial_number' => ['nullable', 'string'],
             'command_results' => ['array'],
             'command_results.*.id' => ['required', 'integer'],
             'command_results.*.status' => ['required', 'string', 'in:acked,failed'],
@@ -113,6 +114,7 @@ class DeviceAgentController extends Controller
             'battery_level' => $data['battery_level'] ?? null,
             'android_version' => $data['android_version'] ?? null,
             'agent_app_version' => $data['agent_app_version'] ?? null,
+            'serial_number' => $data['serial_number'] ?? null,
             'last_poll_at' => now(),
         ], fn ($value) => $value !== null));
 
