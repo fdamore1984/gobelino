@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var commandsAdapter: ArrayAdapter<String>
 
     private var pendingSyncId: UUID? = null
-    private val syncObserver = Observer<WorkInfo?> { info ->
+    private val syncObserver: Observer<WorkInfo?> = Observer { info ->
         if (info == null) return@Observer
         if (info.state.isFinished) {
             forceSyncButton.isEnabled = true
