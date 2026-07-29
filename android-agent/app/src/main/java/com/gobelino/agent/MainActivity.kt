@@ -37,6 +37,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var commandsEmptyText: TextView
     private lateinit var commandsList: ListView
     private lateinit var commandsAdapter: ArrayAdapter<String>
+    private lateinit var workProfileButton: Button
+    private lateinit var workProfileConfigLayout: android.widget.LinearLayout
+    private lateinit var serverUrlInput: android.widget.EditText
+    private lateinit var enrollmentTokenInput: android.widget.EditText
+    private lateinit var saveConfigButton: Button
 
     private var pendingSyncId: UUID? = null
     private val syncObserver = object : Observer<WorkInfo?> {
@@ -68,13 +73,22 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.statusText)
         forceSyncButton = findViewById(R.id.forceSyncButton)
+        workProfileButton = findViewById(R.id.workProfileButton)
         commandsEmptyText = findViewById(R.id.commandsEmptyText)
         commandsList = findViewById(R.id.commandsList)
+        workProfileConfigLayout = findViewById(R.id.workProfileConfigLayout)
+        serverUrlInput = findViewById(R.id.serverUrlInput)
+        enrollmentTokenInput = findViewById(R.id.enrollmentTokenInput)
+        saveConfigButton = findViewById(R.id.saveConfigButton)
+        saveConfigButton.setOnClickListener { saveWorkProfileConfig() }
+
 
         commandsAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
         commandsList.adapter = commandsAdapter
 
         forceSyncButton.setOnClickListener { forceSync() }
+        workProfileButton.setOnClickListener { startWorkProfileProvisioning() }
+        updateWorkProfileUiState()
 
         ensurePollingScheduled()
         updateStatus()
@@ -160,4 +174,71 @@ class MainActivity : AppCompatActivity() {
         commandsEmptyText.visibility = if (entries.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
         commandsList.visibility = if (entries.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
     }
+
+    private fun updateWorkProfileButtonVisibility() {
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        // Mostra il pulsante solo se il device non è già Device Owner
+        // né esiste già un profilo gestito (Profile Owner) su questo device.
+        val alreadyManaged = dpm.isDeviceOwnerApp(packageName) || dpm.isProfileOwnerApp(packageName)
+        workProfileButton.visibility = if (alreadyManaged) android.view.View.GONE else android.view.View.VISIBLE
+    }
+
+    private fun startWorkProfileProvisioning() {
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (!dpm.isProvisioningAllowed(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE)) {
+            Toast.makeText(this, R.string.work_profile_unsupported, Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            val intent = android.content.Intent(DevicePolicyManager.ACTION_PROVISION_MANAGED_PROFILE).apply {
+                putExtra(
+                    DevicePolicyManager.EXTRA_PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME,
+                    com.gobelino.agent.receiver.AgentDeviceAdminReceiver.componentName(this@MainActivity)
+                )
+            }
+            startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, R.string.work_profile_launch_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun updateWorkProfileUiState() {
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val isProfileOwner = dpm.isProfileOwnerApp(packageName)
+        val isDeviceOwner = dpm.isDeviceOwnerApp(packageName)
+        val notConfiguredYet = Prefs.of(this).serverUrl == null
+
+        // Il bottone "Crea profilo di lavoro" sparisce se è già Device Owner
+        // o se il Work Profile è già stato creato.
+        workProfileButton.visibility =
+            if (isDeviceOwner || isProfileOwner) android.view.View.GONE else android.view.View.VISIBLE
+
+        // Il form di configurazione appare solo dopo la creazione del
+        // Work Profile, finché server_url non è ancora stato salvato.
+        workProfileConfigLayout.visibility =
+            if (isProfileOwner && notConfiguredYet) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
+    private fun saveWorkProfileConfig() {
+        val url = serverUrlInput.text.toString().trim()
+        val token = enrollmentTokenInput.text.toString().trim()
+
+        if (url.isEmpty() || token.isEmpty()) {
+            Toast.makeText(this, R.string.config_error_empty, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Prefs.of(this).apply {
+            serverUrl = url
+            pendingEnrollmentToken = token
+        }
+
+        Toast.makeText(this, R.string.config_saved, Toast.LENGTH_SHORT).show()
+        workProfileConfigLayout.visibility = android.view.View.GONE
+
+        ensurePollingScheduled()
+        updateStatus()
+        forceSync() // avvia subito il primo /enroll invece di aspettare il primo poll
+    }
+
 }

@@ -46,8 +46,9 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
 
         // Lets the agent's own MainActivity own the kiosk lock task
         // allowlist (updated dynamically from backend policy).
-        dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
-
+        if (dpm.isDeviceOwnerApp(context.packageName)) {
+            dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+        }
         schedulePolling(context)
     }
 

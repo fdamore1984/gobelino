@@ -29,6 +29,30 @@
             This code expires on {{ $enrollmentToken->expires_at?->format('d/m/Y H:i') }}.
         </p>
 
+        @if ($enrollmentToken->platform === 'android')
+            <div class="mt-6 pt-6 border-t border-gray-200 text-left">
+                <p class="text-sm font-semibold text-gray-700 mb-2">
+                    Oppure: profilo di lavoro (device già in uso)
+                </p>
+                <p class="text-xs text-gray-500 mb-4">
+                    Installa l'app agent sul dispositivo, tocca "Crea profilo di
+                    lavoro" e incolla questi due valori nel form che compare.
+                </p>
+
+                <label class="block text-xs text-gray-400 mb-1">URL server</label>
+                <div class="flex items-center gap-2 mb-3">
+                    <input type="text" readonly value="{{ rtrim(config('app.url'), '/') }}"
+                        class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700" />
+                </div>
+
+                <label class="block text-xs text-gray-400 mb-1">Token di enrollment</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" readonly value="{{ $enrollmentToken->token }}"
+                        class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700" />
+                </div>
+            </div>
+        @endif
+
         <a href="{{ route('devices.index') }}" class="inline-block mt-6 text-sm text-green-800 hover:underline">
             Back to devices
         </a>

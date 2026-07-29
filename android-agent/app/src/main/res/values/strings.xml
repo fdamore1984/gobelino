@@ -3,11 +3,20 @@
     <string name="status_not_provisioned">Not provisioned. Scan the enrollment QR code on the setup screen.</string>
     <string name="status_enrolling">Provisioning received, completing enrollment…</string>
     <string name="status_enrolled">Device managed by Gobelino.</string>
-    <string name="action_force_sync">Forza connessione con il server</string>
-    <string name="action_syncing">Connessione in corso…</string>
-    <string name="sync_success">Sincronizzazione completata</string>
-    <string name="sync_failed">Sincronizzazione non riuscita, riprova</string>
-    <string name="commands_header">Comandi ricevuti dal server</string>
-    <string name="commands_empty">Nessun comando ricevuto finora.</string>
+    <string name="action_force_sync">Force server connection</string>
+    <string name="action_syncing">Connecting…</string>
+    <string name="sync_success">Sync completed</string>
+    <string name="sync_failed">Sync failed, try again</string>
+    <string name="commands_header">Commands received from the server</string>
+    <string name="commands_empty">No commands received yet.</string>
     <string name="command_entry_format">#%1$d · %2$s · %3$s</string>
+    <string name="action_create_work_profile">Create work profile</string>
+    <string name="work_profile_unsupported">Work profile is not supported on this device or a managed profile already exists.</string>
+    <string name="work_profile_launch_failed">Unable to start work profile creation.</string>
+    <string name="work_profile_config_title">Configure work profile</string>
+    <string name="hint_server_url">Server URL (e.g., https://gobelino.up.railway.app)</string>
+    <string name="hint_enrollment_token">Enrollment token</string>
+    <string name="action_save_config">Save and connect</string>
+    <string name="config_error_empty">Fill in both fields</string>
+    <string name="config_saved">Configuration saved, connecting…</string>
 </resources>
