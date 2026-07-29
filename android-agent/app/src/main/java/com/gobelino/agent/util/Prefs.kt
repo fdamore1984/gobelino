@@ -34,4 +34,12 @@ class Prefs private constructor(context: Context) {
     var kioskEnabled: Boolean
         get() = sp.getBoolean("kiosk_enabled", false)
         set(value) = sp.edit().putBoolean("kiosk_enabled", value).apply()
+
+    fun registerChangeListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
+        sp.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    fun unregisterChangeListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
+        sp.unregisterOnSharedPreferenceChangeListener(listener)
+    }
 }

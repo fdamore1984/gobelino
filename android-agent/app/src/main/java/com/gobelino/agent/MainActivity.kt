@@ -22,6 +22,10 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import com.journeyapps.barcodescanning.CaptureActivity
+import com.google.zxing.integration.android.IntentIntegrator
+import com.google.zxing.integration.android.IntentResult
+import org.json.JSONObject
 
 /**
  * Launcher activity. In normal operation the device just sits on
@@ -42,8 +46,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var serverUrlInput: android.widget.EditText
     private lateinit var enrollmentTokenInput: android.widget.EditText
     private lateinit var saveConfigButton: Button
+    private lateinit var scanQrButton: Button
 
     private var pendingSyncId: UUID? = null
+    private val prefsListener =
+    android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "device_token") {
+            runOnUiThread {
+                updateStatus()
+                updateWorkProfileUiState()
+            }
+        }
+    }
     private val syncObserver = object : Observer<WorkInfo?> {
         override fun onChanged(value: WorkInfo?) {
             val info = value ?: return
@@ -81,7 +95,14 @@ class MainActivity : AppCompatActivity() {
         enrollmentTokenInput = findViewById(R.id.enrollmentTokenInput)
         saveConfigButton = findViewById(R.id.saveConfigButton)
         saveConfigButton.setOnClickListener { saveWorkProfileConfig() }
-
+        scanQrButton = findViewById(R.id.scanQrButton)
+        scanQrButton.setOnClickListener {
+            IntentIntegrator(this)
+                .setCaptureActivity(CaptureActivity::class.java)
+                .setOrientationLocked(true)
+                .setPrompt(getString(R.string.action_scan_qr))
+                .initiateScan()
+        }
 
         commandsAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
         commandsList.adapter = commandsAdapter
@@ -93,6 +114,14 @@ class MainActivity : AppCompatActivity() {
         ensurePollingScheduled()
         updateStatus()
         refreshCommandsList()
+
+        Prefs.of(this).registerChangeListener(prefsListener)
+
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Prefs.of(this).unregisterChangeListener(prefsListener)
     }
 
     override fun onResume() {
@@ -233,12 +262,25 @@ class MainActivity : AppCompatActivity() {
             pendingEnrollmentToken = token
         }
 
-        Toast.makeText(this, R.string.config_saved, Toast.LENGTH_SHORT).show()
-        workProfileConfigLayout.visibility = android.view.View.GONE
-
         ensurePollingScheduled()
-        updateStatus()
-        forceSync() // avvia subito il primo /enroll invece di aspettare il primo poll
+
+        workProfileConfigLayout.visibility = android.view.View.GONE
+        updateStatus() // mostra subito "status_enrolling"
+        forceSync()    // il prefsListener sopra farà il resto quando device_token arriva
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val result: IntentResult? = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        val raw = result?.contents ?: return
+
+        try {
+            val json = JSONObject(raw)
+            serverUrlInput.setText(json.getString("server_url"))
+            enrollmentTokenInput.setText(json.getString("enrollment_token"))
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.config_scan_failed, Toast.LENGTH_SHORT).show()
+        }
     }
 
 }

@@ -30,26 +30,42 @@
         </p>
 
         @if ($enrollmentToken->platform === 'android')
-            <div class="mt-6 pt-6 border-t border-gray-200 text-left">
-                <p class="text-sm font-semibold text-gray-700 mb-2">
-                    Oppure: profilo di lavoro (device già in uso)
+            <div class="mt-8 pt-6 border-t border-gray-200 text-left">
+                <p class="text-sm font-semibold text-gray-700 mb-1">
+                    Or: Work Profile (device already in use)
                 </p>
                 <p class="text-xs text-gray-500 mb-4">
-                    Installa l'app agent sul dispositivo, tocca "Crea profilo di
-                    lavoro" e incolla questi due valori nel form che compare.
+                    Use this for a device that's already set up and in daily
+                    use — no factory reset needed.
                 </p>
 
-                <label class="block text-xs text-gray-400 mb-1">URL server</label>
-                <div class="flex items-center gap-2 mb-3">
-                    <input type="text" readonly value="{{ rtrim(config('app.url'), '/') }}"
-                        class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700" />
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 mb-2">1. Download the app</p>
+                        <div id="qrcode-apk" class="flex justify-center"></div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-500 mb-2">2. Scan to auto-fill setup</p>
+                        <div id="qrcode-config" class="flex justify-center"></div>
+                    </div>
                 </div>
 
-                <label class="block text-xs text-gray-400 mb-1">Token di enrollment</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" readonly value="{{ $enrollmentToken->token }}"
-                        class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700" />
-                </div>
+                <p class="text-xs text-gray-500 mb-4">
+                    Install the app, open it, tap <strong>"Create work
+                    profile"</strong>, then tap <strong>"Scan QR to
+                    configure"</strong> inside the app and scan the second
+                    code above. Or enter the values below manually.
+                </p>
+
+                <label class="block text-xs text-gray-400 mb-1">Server URL</label>
+                <input type="text" readonly value="{{ rtrim(config('app.url'), '/') }}"
+                    onclick="this.select()"
+                    class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700 mb-3" />
+
+                <label class="block text-xs text-gray-400 mb-1">Enrollment token</label>
+                <input type="text" readonly value="{{ $enrollmentToken->token }}"
+                    onclick="this.select()"
+                    class="w-full text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 text-gray-700" />
             </div>
         @endif
 
@@ -60,17 +76,28 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.4.4/qrcode.min.js"></script>
     <script>
-        const qrData = @json($enrollmentToken->qr_code_json);
-        
-        QRCode.toCanvas(document.createElement('canvas'), qrData, { width: 260 }, function (error, canvas) {
-            if (error) {
-                document.getElementById('qrcode').innerText = 'Error generating the QR code.';
-                console.error(error);
-                return;
-            }
-            // Clear the div first for safety (avoids duplicates if the script runs twice)
-            document.getElementById('qrcode').innerHTML = '';
-            document.getElementById('qrcode').appendChild(canvas);
-        });
+        function renderQr(elementId, data) {
+            QRCode.toCanvas(document.createElement('canvas'), data, { width: 200 }, function (error, canvas) {
+                const el = document.getElementById(elementId);
+                if (error) {
+                    el.innerText = 'Error generating the QR code.';
+                    console.error(error);
+                    return;
+                }
+                el.innerHTML = '';
+                el.appendChild(canvas);
+            });
+        }
+
+        renderQr('qrcode', @json($enrollmentToken->qr_code_json));
+
+        @if ($enrollmentToken->platform === 'android')
+            renderQr('qrcode-apk', @json(route('agent.apk.download')));
+
+            renderQr('qrcode-config', @json(json_encode([
+                'server_url' => rtrim(config('app.url'), '/'),
+                'enrollment_token' => $enrollmentToken->token,
+            ])));
+        @endif
     </script>
 @endsection

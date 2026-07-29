@@ -11,12 +11,14 @@
     <string name="commands_empty">No commands received yet.</string>
     <string name="command_entry_format">#%1$d · %2$s · %3$s</string>
     <string name="action_create_work_profile">Create work profile</string>
-    <string name="work_profile_unsupported">Work profile is not supported on this device or a managed profile already exists.</string>
-    <string name="work_profile_launch_failed">Unable to start work profile creation.</string>
-    <string name="work_profile_config_title">Configure work profile</string>
-    <string name="hint_server_url">Server URL (e.g., https://gobelino.up.railway.app)</string>
+    <string name="work_profile_unsupported">Work profile isn\'t supported on this device, or one already exists.</string>
+    <string name="work_profile_launch_failed">Couldn\'t start work profile creation.</string>
+    <string name="work_profile_config_title">Configure the work profile</string>
+    <string name="hint_server_url">Server URL (e.g. https://gobelino.up.railway.app)</string>
     <string name="hint_enrollment_token">Enrollment token</string>
     <string name="action_save_config">Save and connect</string>
+    <string name="action_scan_qr">Scan QR to configure</string>
+    <string name="action_connecting">Connecting…</string>
     <string name="config_error_empty">Fill in both fields</string>
-    <string name="config_saved">Configuration saved, connecting…</string>
+    <string name="config_scan_failed">Couldn\'t read a valid QR code</string>
 </resources>
