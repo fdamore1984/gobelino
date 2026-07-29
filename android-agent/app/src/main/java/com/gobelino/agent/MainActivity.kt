@@ -22,7 +22,7 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-import com.journeyapps.barcodescanning.CaptureActivity
+import com.journeyapps.barcodescanner.CaptureActivity
 import com.google.zxing.integration.android.IntentIntegrator
 import com.google.zxing.integration.android.IntentResult
 import org.json.JSONObject
