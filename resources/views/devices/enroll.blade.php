@@ -94,10 +94,13 @@
         @if ($enrollmentToken->platform === 'android')
             renderQr('qrcode-apk', @json(route('agent.apk.download')));
 
-            renderQr('qrcode-config', @json(json_encode([
-                'server_url' => rtrim(config('app.url'), '/'),
-                'enrollment_token' => $enrollmentToken->token,
-            ])));
+            @php
+                $agentConfigJson = json_encode([
+                    'server_url' => rtrim(config('app.url'), '/'),
+                    'enrollment_token' => $enrollmentToken->token,
+                ]);
+            @endphp
+            renderQr('qrcode-config', @json($agentConfigJson));
         @endif
     </script>
 @endsection
