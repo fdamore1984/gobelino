@@ -39,10 +39,14 @@
                     use — no factory reset needed.
                 </p>
 
-                <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="flex flex-col gap-6 mb-4">
                     <div class="text-center">
                         <p class="text-xs text-gray-500 mb-2">1. Download the app</p>
-                        <div id="qrcode-apk" class="flex justify-center"></div>
+                        <div id="qrcode-apk" class="flex justify-center mb-2"></div>
+                        <a href="{{ route('agent.apk.download') }}"
+                           class="inline-block text-xs bg-green-800 text-white px-3 py-1.5 rounded hover:bg-green-900">
+                            Download APK
+                        </a>
                     </div>
                     <div class="text-center">
                         <p class="text-xs text-gray-500 mb-2">2. Scan to auto-fill setup</p>
