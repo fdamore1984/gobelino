@@ -74,7 +74,7 @@ Route::middleware(['auth', 'subscription.active'])->group(function () {
     });
 });
 
-Route::get('/apk', function () {
+Route::get('/download/apk', function () {
     return response()->download(
         public_path('apk/app-debug.apk'),
         'gobelino-agent-debug.apk',
