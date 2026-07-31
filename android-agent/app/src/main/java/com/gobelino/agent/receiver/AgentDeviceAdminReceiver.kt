@@ -26,7 +26,7 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
         val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val admin = componentName(context)
 
-        // Finalizes Device Owner activation.
+        // Finalizes Device Owner / Profile Owner activation.
         dpm.setProfileEnabled(admin)
 
         // Extras we embedded in the provisioning QR (see
@@ -44,11 +44,22 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
             }
         }
 
-        // Lets the agent's own MainActivity own the kiosk lock task
-        // allowlist (updated dynamically from backend policy).
-        if (dpm.isDeviceOwnerApp(context.packageName)) {
+        val isDeviceOwner = dpm.isDeviceOwnerApp(context.packageName)
+
+        // Il kiosk/lock-task ha senso solo per Device Owner (device intero).
+        if (isDeviceOwner) {
             dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+        } else {
+            // Caso Work Profile: questo callback gira DENTRO il profilo
+            // di lavoro appena creato. Apriamo subito la nostra
+            // MainActivity qui, cosi' l'utente si ritrova l'app aperta
+            // nel profilo di lavoro senza doverla cercare a mano.
+            val launchIntent = Intent(context, com.gobelino.agent.MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(launchIntent)
         }
+
         schedulePolling(context)
     }
 

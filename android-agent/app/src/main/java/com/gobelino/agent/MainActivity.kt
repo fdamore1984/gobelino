@@ -26,6 +26,9 @@ import com.journeyapps.barcodescanner.CaptureActivity
 import com.google.zxing.integration.android.IntentIntegrator
 import com.google.zxing.integration.android.IntentResult
 import org.json.JSONObject
+import android.app.Activity
+import android.content.ComponentName
+import android.content.pm.PackageManager
 
 /**
  * Launcher activity. In normal operation the device just sits on
@@ -35,6 +38,10 @@ import org.json.JSONObject
  * force an immediate check-in instead of waiting for the next poll.
  */
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val REQUEST_PROVISION_MANAGED_PROFILE = 2001
+    }
 
     private lateinit var statusText: TextView
     private lateinit var forceSyncButton: Button
@@ -225,7 +232,7 @@ class MainActivity : AppCompatActivity() {
                     com.gobelino.agent.receiver.AgentDeviceAdminReceiver.componentName(this@MainActivity)
                 )
             }
-            startActivity(intent)
+            startActivityForResult(intent, REQUEST_PROVISION_MANAGED_PROFILE)
         } catch (e: android.content.ActivityNotFoundException) {
             Toast.makeText(this, R.string.work_profile_launch_failed, Toast.LENGTH_LONG).show()
         }
@@ -271,9 +278,28 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == REQUEST_PROVISION_MANAGED_PROFILE) {
+            if (resultCode == Activity.RESULT_OK) {
+                // Provisioning riuscito: nasconde l'icona di questa app
+                // nel LAUNCHER DEL PROFILO PERSONALE. La disabilitazione del
+                // componente vale solo per l'utente/profilo che la esegue
+                // (quello personale, dato che siamo ancora qui), quindi non
+                // tocca la copia dell'app dentro il work profile.
+                packageManager.setComponentEnabledSetting(
+                    ComponentName(this, MainActivity::class.java),
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            } else {
+                Toast.makeText(this, R.string.work_profile_launch_failed, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        // ramo già esistente per lo scan QR
         val result: IntentResult? = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
         val raw = result?.contents ?: return
-
         try {
             val json = JSONObject(raw)
             serverUrlInput.setText(json.getString("server_url"))
