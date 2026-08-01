@@ -1,4 +1,4 @@
-# Gobelino 🚀
+# Gobelino
 
 **Gobelino** is a lightweight, super-simplified web panel designed for fast, hassle-free remote management of Android and iOS/iPadOS devices.
 
