@@ -7,11 +7,26 @@ android {
     namespace = "com.gobelino.agent"
     compileSdk = 34
 
+    signingConfigs {
+        getByName("debug") {
+            // Se le variabili d'ambiente sono presenti (CI) usa il keystore fisso decodificato dal secret.
+            // In locale, se non sono settate, Gradle ricade sul debug.keystore di default (~/.android/debug.keystore).
+            val ciKeystorePath = System.getenv("DEBUG_KEYSTORE_PATH")
+            if (ciKeystorePath != null) {
+                storeFile = file(ciKeystorePath)
+                storePassword = System.getenv("DEBUG_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("DEBUG_KEY_ALIAS")
+                keyPassword = System.getenv("DEBUG_KEY_PASSWORD")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.gobelino.agent"
         minSdk = 26 // Device Owner provisioning via QR requires API 24+; 26 keeps WorkManager simple
-        targetSdk = 34
-        versionCode = 1
+        // In CI passiamo APP_VERSION_CODE=github.run_number cosi' ogni build ha un versionCode crescente
+        // e Android accetta l'update sui dispositivi gia' arruolati.
+        versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = "1.0.0"
     }
 
