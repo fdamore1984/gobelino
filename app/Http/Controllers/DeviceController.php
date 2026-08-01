@@ -61,6 +61,49 @@ class DeviceController extends Controller
     }
 
     /**
+     * Full-page view of a single device's command queue (replaces the
+     * old popover: gets its own URL, its own back button, and its own
+     * 8s refresh loop against deviceStatus() below).
+     */
+    public function queue(Request $request, Device $device): View
+    {
+        abort_unless($device->company_id === $request->user()->company_id, 403);
+        abort_unless($device->isAndroid(), 404);
+
+        $device->load(['commands' => fn ($q) => $q->latest()->limit(50)]);
+
+        return view('devices.queue', ['device' => $device]);
+    }
+
+    /**
+     * Polled every few seconds by the queue page (see devices/queue.blade.php)
+     * to refresh a single device's status and full command queue.
+     */
+    public function deviceStatus(Request $request, Device $device): JsonResponse
+    {
+        abort_unless($device->company_id === $request->user()->company_id, 403);
+
+        $device->load(['commands' => fn ($q) => $q->latest()->limit(50)]);
+
+        return response()->json([
+            'device' => [
+                'id' => $device->id,
+                'online' => $device->isAndroid() ? $device->isOnline() : null,
+                'kiosk_enabled' => $device->kiosk_enabled,
+                'battery_level' => $device->battery_level,
+                'serial_number' => $device->serial_number,
+                'last_poll_at_human' => $device->last_poll_at?->diffForHumans(),
+                'commands' => $device->commands->map(fn (DeviceCommand $command) => [
+                    'id' => $command->id,
+                    'type' => $command->type,
+                    'status' => $command->status,
+                    'created_at_human' => $command->created_at->diffForHumans(),
+                ]),
+            ],
+        ]);
+    }
+
+    /**
      * Generates a new enrollment token (QR code) to be scanned
      * by an Android or iOS device during provisioning/reset.
      */

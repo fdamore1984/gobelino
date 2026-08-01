@@ -1,9 +1,9 @@
 @if ($commands->isEmpty())
-    <p class="px-3 py-3 text-xs text-gray-400">No commands sent yet.</p>
+    <p class="px-4 py-4 text-xs text-gray-400">No commands sent yet.</p>
 @else
-    <ul class="max-h-64 overflow-y-auto divide-y">
+    <ul class="divide-y">
         @foreach ($commands as $command)
-            <li class="px-3 py-2 flex items-center justify-between gap-2">
+            <li class="px-4 py-3 flex items-center justify-between gap-2">
                 <div>
                     <p class="text-gray-800 capitalize">{{ str_replace('_', ' ', $command->type) }}</p>
                     <p class="text-[11px] text-gray-400">{{ $command->created_at->diffForHumans() }}</p>

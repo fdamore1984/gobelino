@@ -88,23 +88,14 @@
 
                     @if ($device->isAndroid())
                         <div class="flex items-center gap-2 relative">
-                            {{-- Command queue popover --}}
-                            <div class="relative">
-                                <button type="button"
-                                        onclick="gobelinoToggle('queue-{{ $device->id }}')"
-                                        title="Command queue"
-                                        class="p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </button>
-                                <div id="queue-{{ $device->id }}" class="gobelino-popover hidden absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm">
-                                    <div class="px-3 py-2 border-b text-xs font-medium text-gray-500">Command queue</div>
-                                    <div id="queue-list-{{ $device->id }}">
-                                        @include('devices.partials.queue-list', ['commands' => $device->commands])
-                                    </div>
-                                </div>
-                            </div>
+                            {{-- Command queue: full page, not a popover --}}
+                            <a href="{{ route('devices.queue', $device) }}"
+                               title="Command queue"
+                               class="p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </a>
 
                             {{-- Actions dropdown --}}
                             <div class="relative">
@@ -117,29 +108,17 @@
                                     </svg>
                                 </button>
                                 <div id="actions-{{ $device->id }}" class="gobelino-popover hidden absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm overflow-hidden">
-                                    <form method="POST" action="{{ route('devices.commands.store', $device) }}">
-                                        @csrf
-                                        <input type="hidden" name="type" value="lock">
-                                        <button type="submit" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50">Lock</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('devices.commands.store', $device) }}">
-                                        @csrf
-                                        <input type="hidden" name="type" value="reboot">
-                                        <button type="submit" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50">Reboot</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('devices.commands.store', $device) }}">
-                                        @csrf
-                                        <input type="hidden" name="type" value="set_kiosk">
-                                        <button type="submit" id="kiosk-action-label-{{ $device->id }}" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50">
-                                            {{ $device->kiosk_enabled ? 'Disable kiosk' : 'Enable kiosk' }}
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('devices.commands.store', $device) }}"
-                                          onsubmit="return confirm('Wipe this device? This cannot be undone.');">
-                                        @csrf
-                                        <input type="hidden" name="type" value="wipe">
-                                        <button type="submit" class="w-full text-left px-3 py-2 text-red-700 hover:bg-red-50">Wipe</button>
-                                    </form>
+                                    <button type="button" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50"
+                                            onclick="gobelinoCommandClick(this, {{ $device->id }}, 'lock')">Lock</button>
+                                    <button type="button" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50"
+                                            onclick="gobelinoCommandClick(this, {{ $device->id }}, 'reboot')">Reboot</button>
+                                    <button type="button" id="kiosk-action-label-{{ $device->id }}"
+                                            class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50"
+                                            onclick="gobelinoCommandClick(this, {{ $device->id }}, 'set_kiosk')">
+                                        {{ $device->kiosk_enabled ? 'Disable kiosk' : 'Enable kiosk' }}
+                                    </button>
+                                    <button type="button" class="w-full text-left px-3 py-2 text-red-700 hover:bg-red-50"
+                                            onclick="gobelinoCommandClick(this, {{ $device->id }}, 'wipe', 'Wipe this device? This cannot be undone.')">Wipe</button>
                                     <form method="POST" action="{{ route('devices.destroy', $device) }}"
                                           class="border-t border-gray-100"
                                           onsubmit="return confirm('Remove this device from the panel? This only forgets it here, it does not wipe the physical device.');">
@@ -173,49 +152,13 @@
     @endif
 
     <script>
-        function gobelinoToggle(id) {
-            const panel = document.getElementById(id);
-            const isOpen = !panel.classList.contains('hidden');
-            document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
-            if (!isOpen) panel.classList.remove('hidden');
-        }
-        document.addEventListener('click', function (event) {
-            if (!event.target.closest('[onclick^="gobelinoToggle"]') && !event.target.closest('.gobelino-popover')) {
-                document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
-            }
-        });
-        document.addEventListener('keydown', function (event) {
-            if (event.key === 'Escape') {
-                document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
-            }
-        });
-
         // --- Live refresh: polls /devices/status every few seconds and
         // patches the DOM in place, no F5 needed. Doesn't touch open
         // popovers' visibility, only their content, so it won't
         // interrupt someone mid-click.
-        const GOBELINO_STATUS_LABELS = {
-            pending: ['In coda', 'bg-gray-100 text-gray-600'],
-            sent: ['Consegnato', 'bg-yellow-100 text-yellow-800'],
-            acked: ['Eseguito', 'bg-green-100 text-green-800'],
-            failed: ['Fallito', 'bg-red-100 text-red-700'],
-        };
-
-        function gobelinoRenderQueue(commands) {
-            if (!commands.length) {
-                return '<p class="px-3 py-3 text-xs text-gray-400">No commands sent yet.</p>';
-            }
-            return '<ul class="max-h-64 overflow-y-auto divide-y">' + commands.map(function (command) {
-                const [label, classes] = GOBELINO_STATUS_LABELS[command.status] || [command.status, 'bg-gray-100 text-gray-600'];
-                const typeLabel = command.type.replace(/_/g, ' ');
-                return '<li class="px-3 py-2 flex items-center justify-between gap-2">' +
-                    '<div><p class="text-gray-800 capitalize">' + typeLabel + '</p>' +
-                    '<p class="text-[11px] text-gray-400">' + command.created_at_human + '</p></div>' +
-                    '<span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ' + classes + '">' + label + '</span>' +
-                    '</li>';
-            }).join('') + '</ul>';
-        }
-
+        // (gobelinoToggle, gobelinoToast, gobelinoCommandClick and
+        // gobelinoRenderQueue live in layouts/app.blade.php, shared
+        // with the command queue page.)
         function gobelinoRefreshDevices() {
             fetch('{{ route('devices.status') }}', { headers: { 'Accept': 'application/json' } })
                 .then(res => res.ok ? res.json() : Promise.reject())
@@ -242,9 +185,6 @@
 
                         const batteryEl = document.getElementById('battery-' + device.id);
                         if (batteryEl && device.battery_level !== null) batteryEl.textContent = device.battery_level;
-
-                        const queueList = document.getElementById('queue-list-' + device.id);
-                        if (queueList) queueList.innerHTML = gobelinoRenderQueue(device.commands);
                     });
                 })
                 .catch(() => { /* transient network hiccup: just try again next tick */ });
