@@ -9,19 +9,12 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
+import androidx.lifecycle.lifecycleScope
 import com.gobelino.agent.util.Prefs
 import com.gobelino.agent.worker.CommandHistoryStore
 import com.gobelino.agent.worker.PollScheduler
-import com.gobelino.agent.worker.PollWorker
 import java.text.DateFormat
 import java.util.Date
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 import com.journeyapps.barcodescanner.CaptureActivity
 import com.google.zxing.integration.android.IntentIntegrator
 import com.google.zxing.integration.android.IntentResult
@@ -29,13 +22,16 @@ import org.json.JSONObject
 import android.app.Activity
 import android.content.ComponentName
 import android.content.pm.PackageManager
+import kotlinx.coroutines.launch
 
 /**
  * Launcher activity. In normal operation the device just sits on
  * this screen (or, in kiosk mode, is pinned to it via LockTask) while
- * PollWorker does all the real work in the background. It also shows
- * the log of commands received from the server and lets the user
- * force an immediate check-in instead of waiting for the next poll.
+ * PollForegroundService does all the real work in the background,
+ * with PollWorker as a watchdog that restarts it if it dies. It also
+ * shows the log of commands received from the server and lets the
+ * user force an immediate check-in instead of waiting for the next
+ * poll.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -55,36 +51,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var saveConfigButton: Button
     private lateinit var scanQrButton: Button
 
-    private var pendingSyncId: UUID? = null
     private val prefsListener =
     android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == "device_token") {
             runOnUiThread {
                 updateStatus()
                 updateWorkProfileUiState()
-            }
-        }
-    }
-    private val syncObserver = object : Observer<WorkInfo?> {
-        override fun onChanged(value: WorkInfo?) {
-            val info = value ?: return
-            
-            if (info.state.isFinished) {
-                forceSyncButton.isEnabled = true
-                forceSyncButton.setText(R.string.action_force_sync)
-                Toast.makeText(
-                    this@MainActivity, // <-- NOTA: Ora serve this@MainActivity per il Context
-                    if (info.state == WorkInfo.State.SUCCEEDED) R.string.sync_success else R.string.sync_failed,
-                    Toast.LENGTH_SHORT
-                ).show()
-                updateStatus()
-                refreshCommandsList()
-                
-                // Usiamo 'this' invece di 'syncObserver' per rimuovere l'osservatore
-                pendingSyncId?.let { 
-                    WorkManager.getInstance(this@MainActivity).getWorkInfoByIdLiveData(it).removeObserver(this) 
-                }
-                pendingSyncId = null
             }
         }
     }
@@ -118,7 +90,9 @@ class MainActivity : AppCompatActivity() {
         workProfileButton.setOnClickListener { startWorkProfileProvisioning() }
         updateWorkProfileUiState()
 
-        ensurePollingScheduled()
+        // Avvia la foreground service (polling continuo, sopravvive al
+        // Doze mode) e arma il watchdog WorkManager di backup.
+        PollScheduler.scheduleNow(this)
         updateStatus()
         refreshCommandsList()
 
@@ -138,20 +112,6 @@ class MainActivity : AppCompatActivity() {
         refreshCommandsList()
     }
 
-    private fun ensurePollingScheduled() {
-        val prefs = Prefs.of(this)
-        if (prefs.serverUrl == null) return // not provisioned yet
-
-        val interval = prefs.pollIntervalSeconds.coerceAtLeast(60)
-        val request = PeriodicWorkRequestBuilder<PollWorker>(interval.toLong(), TimeUnit.SECONDS).build()
-
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "agent-poll",
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
-        )
-    }
-
     /** Triggered by the "Forza connessione" button: runs a check-in right away. */
     private fun forceSync() {
         if (Prefs.of(this).serverUrl == null) {
@@ -162,9 +122,24 @@ class MainActivity : AppCompatActivity() {
         forceSyncButton.isEnabled = false
         forceSyncButton.setText(R.string.action_syncing)
 
-        val id = PollScheduler.forceNow(this)
-        pendingSyncId = id
-        WorkManager.getInstance(this).getWorkInfoByIdLiveData(id).observe(this, syncObserver)
+        lifecycleScope.launch {
+            val succeeded = try {
+                PollScheduler.forceNow(this@MainActivity)
+                true
+            } catch (e: Exception) {
+                false
+            }
+
+            forceSyncButton.isEnabled = true
+            forceSyncButton.setText(R.string.action_force_sync)
+            Toast.makeText(
+                this@MainActivity,
+                if (succeeded) R.string.sync_success else R.string.sync_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+            updateStatus()
+            refreshCommandsList()
+        }
     }
 
     /**
@@ -269,7 +244,9 @@ class MainActivity : AppCompatActivity() {
             pendingEnrollmentToken = token
         }
 
-        ensurePollingScheduled()
+        // Appena configurato il work profile, avvia foreground service +
+        // watchdog (stessa chiamata usata in onCreate).
+        PollScheduler.scheduleNow(this)
 
         workProfileConfigLayout.visibility = android.view.View.GONE
         updateStatus() // mostra subito "status_enrolling"

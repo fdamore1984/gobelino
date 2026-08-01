@@ -46,6 +46,32 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
                 }
             }
         }
+
+        /**
+         * Dal API 33 (Tiramisu) le notifiche richiedono un permesso
+         * runtime esplicito, altrimenti startForeground() funziona ma
+         * la notifica resta invisibile. Come Device Owner possiamo
+         * concederlo direttamente, senza dialog per l'utente — coerente
+         * col resto dell'agent, pensato per operare senza interazione.
+         */
+        fun grantNotificationPermission(context: Context, dpm: DevicePolicyManager) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
+                && dpm.isDeviceOwnerApp(context.packageName)
+            ) {
+                try {
+                    dpm.setPermissionGrantState(
+                        componentName(context),
+                        context.packageName,
+                        android.Manifest.permission.POST_NOTIFICATIONS,
+                        DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+                    )
+                } catch (e: Exception) {
+                    // Non fatale: su API 33+ senza questo la notifica
+                    // della foreground service resta invisibile, ma il
+                    // servizio e il polling continuano a funzionare.
+                }
+            }
+        }
     }
 
     override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
@@ -76,6 +102,7 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
         if (isDeviceOwner) {
             dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
             exemptFromBatteryOptimizations(context, dpm)
+            grantNotificationPermission(context, dpm)
         } else {
             // Caso Work Profile: questo callback gira DENTRO il profilo
             // di lavoro appena creato. Apriamo subito la nostra
@@ -96,6 +123,7 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
         // ogni boot/riabilitazione dell'admin, non solo al primo setup.
         val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         exemptFromBatteryOptimizations(context, dpm)
+        grantNotificationPermission(context, dpm)
         schedulePolling(context)
     }
 
