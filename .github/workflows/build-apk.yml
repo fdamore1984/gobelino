@@ -42,15 +42,14 @@ jobs:
           name: app-debug
           path: android-agent/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Compute signature checksum
+      - name: Compute APK file checksum
         working-directory: android-agent/app/build/outputs/apk/debug
         run: |
-          APKSIGNER=$(find "$ANDROID_HOME" -name apksigner -type f | head -n1)
-          echo "Using apksigner: $APKSIGNER"
-          CERT_SHA256_HEX=$("$APKSIGNER" verify --print-certs app-debug.apk | grep 'SHA-256 digest' | head -n1 | awk '{print $NF}')
-          echo "Cert SHA-256 (hex): $CERT_SHA256_HEX"
-          CHECKSUM=$(echo -n "$CERT_SHA256_HEX" | xxd -r -p | openssl base64 | tr '+/' '-_' | tr -d '=')
-          echo "Signature checksum: $CHECKSUM"
+          # PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM vuole lo SHA-256
+          # dell'INTERO file .apk (non del certificato di firma!),
+          # base64 URL-safe senza padding.
+          CHECKSUM=$(sha256sum app-debug.apk | cut -d' ' -f1 | xxd -r -p | openssl base64 | tr '+/' '-_' | tr -d '=')
+          echo "APK file checksum: $CHECKSUM"
           echo "$CHECKSUM" > checksum.txt
           echo "APK_CHECKSUM=$CHECKSUM" >> "$GITHUB_ENV"
 
