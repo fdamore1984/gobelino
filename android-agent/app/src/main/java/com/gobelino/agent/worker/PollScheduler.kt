@@ -3,7 +3,6 @@ package com.gobelino.agent.worker
 import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -52,14 +51,22 @@ object PollScheduler {
     /**
      * Manual "forza connessione" button in MainActivity: unlike
      * scheduleNow(), this uses REPLACE so it cancels any pending wait
-     * and runs right away, and requests expedited execution so it
-     * isn't subject to WorkManager's normal battery-saver delays.
+     * and runs right away.
+     *
+     * NOTE: deliberately NOT using setExpedited() here. On API 31+,
+     * truly-expedited CoroutineWorkers must override getForegroundInfo()
+     * to supply a notification, or the base class throws
+     * IllegalStateException("Not implemented") the moment the system
+     * tries to promote the work — that's exactly what was crashing the
+     * agent every time this button was pressed. Since the button is
+     * only pressed while the app is already in the foreground, a plain
+     * immediate OneTimeWorkRequest already runs promptly without
+     * needing expedited priority (or a permanent notification, which
+     * would be undesirable for a background MDM agent anyway).
      * Returns the request id so the caller can observe completion.
      */
     fun forceNow(context: Context): UUID {
-        val request = OneTimeWorkRequestBuilder<PollWorker>()
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .build()
+        val request = OneTimeWorkRequestBuilder<PollWorker>().build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(
             WORK_NAME,
