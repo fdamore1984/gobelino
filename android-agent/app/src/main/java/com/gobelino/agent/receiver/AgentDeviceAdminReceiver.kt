@@ -20,6 +20,32 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
     companion object {
         fun componentName(context: Context): ComponentName =
             ComponentName(context, AgentDeviceAdminReceiver::class.java)
+
+        /**
+         * Il "no FCM" polling in background dipende da WorkManager, che
+         * su Doze/App Standby (e sugli scheduler aggressivi di molti
+         * OEM) puo' essere ritardato o sospeso quando il device e'
+         * inattivo — a differenza di un'azione interattiva come "forza
+         * connessione". setUserControlDisabledPackages (Device Owner,
+         * API 30+) protegge l'app da queste restrizioni senza mostrare
+         * alcun dialog all'utente. Su API < 30 non esiste equivalente
+         * silenzioso: li' l'unica strada e' il dialog
+         * ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, che pero'
+         * richiede un tap dell'utente. Chiamabile ripetutamente: e'
+         * idempotente.
+         */
+        fun exemptFromBatteryOptimizations(context: Context, dpm: DevicePolicyManager) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R
+                && dpm.isDeviceOwnerApp(context.packageName)
+            ) {
+                try {
+                    dpm.setUserControlDisabledPackages(componentName(context), listOf(context.packageName))
+                } catch (e: Exception) {
+                    // Non fatale: il polling continua comunque, solo con
+                    // latenza meno affidabile in background.
+                }
+            }
+        }
     }
 
     override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
@@ -49,6 +75,7 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
         // Il kiosk/lock-task ha senso solo per Device Owner (device intero).
         if (isDeviceOwner) {
             dpm.setLockTaskPackages(admin, arrayOf(context.packageName))
+            exemptFromBatteryOptimizations(context, dpm)
         } else {
             // Caso Work Profile: questo callback gira DENTRO il profilo
             // di lavoro appena creato. Apriamo subito la nostra
@@ -64,6 +91,11 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
     }
 
     override fun onEnabled(context: Context, intent: Intent) {
+        // Copre anche i dispositivi gia' provisionati prima
+        // dell'introduzione di questa esenzione: onEnabled riparte ad
+        // ogni boot/riabilitazione dell'admin, non solo al primo setup.
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        exemptFromBatteryOptimizations(context, dpm)
         schedulePolling(context)
     }
 

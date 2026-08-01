@@ -1,5 +1,6 @@
 package com.gobelino.agent.worker
 
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.os.BatteryManager
 import android.os.Build
@@ -7,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.gobelino.agent.BuildConfig
 import com.gobelino.agent.net.ApiClient
+import com.gobelino.agent.receiver.AgentDeviceAdminReceiver
 import com.gobelino.agent.util.Prefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,6 +34,12 @@ class PollWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val prefs = Prefs.of(applicationContext)
         var nextDelaySeconds = prefs.pollIntervalSeconds
+
+        // Idempotente: applica l'esenzione anche sui dispositivi gia'
+        // enrollati prima di questa modifica, non appena ricevono
+        // l'APK aggiornata — non serve ri-registrarli da zero.
+        val dpm = applicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        AgentDeviceAdminReceiver.exemptFromBatteryOptimizations(applicationContext, dpm)
 
         try {
             val serverUrl = prefs.serverUrl ?: return@withContext Result.success()
