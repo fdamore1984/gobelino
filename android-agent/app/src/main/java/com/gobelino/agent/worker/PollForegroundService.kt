@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.gobelino.agent.R
 import kotlinx.coroutines.CoroutineScope
@@ -34,15 +35,31 @@ import kotlinx.coroutines.launch
  * public way to make a notification "not removable" — Android has no
  * API to block the user from disabling it entirely via Settings or
  * force-stopping the app; this gets us as close as the platform allows).
+ *
+ * Being a foreground service exempts the *process* from Doze/App
+ * Standby throttling, but it does NOT by itself keep the CPU out of
+ * deep sleep once the screen has been off long enough — the
+ * pollLoop()'s delay() is a plain timer, and a sleeping CPU simply
+ * doesn't run it until something else wakes the device up first.
+ * That's what caused commands to stop arriving after long screen-off
+ * periods. A PARTIAL_WAKE_LOCK, held for the loop's lifetime and
+ * renewed on every cycle (bounded by WAKE_LOCK_TIMEOUT_MILLIS so a
+ * crash before onDestroy() can't leak it), keeps the CPU awake for
+ * this specifically.
  */
 class PollForegroundService : Service() {
 
     private val serviceJob = Job()
     private val scope = CoroutineScope(Dispatchers.IO + serviceJob)
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIFICATION_ID, buildNotification())
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "gobelino:poll").apply {
+            setReferenceCounted(false)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -57,12 +74,18 @@ class PollForegroundService : Service() {
 
     private suspend fun pollLoop() {
         while (scope.isActive) {
-            val nextDelaySeconds = PollRunner.runOnce(applicationContext)
-            delay(nextDelaySeconds.coerceAtLeast(10) * 1000L)
+            val waitSeconds = (PollRunner.runOnce(applicationContext)).coerceAtLeast(10)
+            // Renew every cycle rather than acquire-once-forever: if the
+            // service ever dies without onDestroy() running (OEM kill,
+            // crash), the lock still expires on its own instead of
+            // draining the battery indefinitely.
+            wakeLock?.acquire(WAKE_LOCK_TIMEOUT_MILLIS.coerceAtLeast((waitSeconds + 60) * 1000L))
+            delay(waitSeconds * 1000L)
         }
     }
 
     override fun onDestroy() {
+        wakeLock?.let { if (it.isHeld) it.release() }
         serviceJob.cancel()
         super.onDestroy()
     }
@@ -100,6 +123,11 @@ class PollForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "gobelino_agent_service"
         private const val NOTIFICATION_ID = 1
+        // Floor for the wake lock timeout: always at least this long,
+        // and extended further below when a single cycle's own wait is
+        // longer than this (so a slow poll interval never outlives the
+        // lock that's supposed to keep the CPU awake for it).
+        private const val WAKE_LOCK_TIMEOUT_MILLIS = 10 * 60 * 1000L
 
         fun start(context: Context) {
             val intent = Intent(context, PollForegroundService::class.java)
