@@ -42,4 +42,14 @@ class Prefs private constructor(context: Context) {
     fun unregisterChangeListener(listener: android.content.SharedPreferences.OnSharedPreferenceChangeListener) {
         sp.unregisterOnSharedPreferenceChangeListener(listener)
     }
+
+    /**
+     * Timestamp (epoch millis) dell'ultimo giro completato dalla
+     * PollForegroundService. Il watchdog in PollWorker lo confronta
+     * con "adesso" per capire se la foreground service e' ancora viva
+     * senza dover interrogare ActivityManager.
+     */
+    var lastHeartbeatAtMillis: Long
+        get() = sp.getLong("last_heartbeat_at_millis", 0L)
+        set(value) = sp.edit().putLong("last_heartbeat_at_millis", value).apply()
 }

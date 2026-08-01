@@ -45,7 +45,7 @@ object PollRunner {
             // Not yet enrolled: consume the pending token from the QR first.
             if (prefs.deviceToken == null) {
                 val pendingToken = prefs.pendingEnrollmentToken ?: return nextDelaySeconds
-                val response = api.enroll(pendingToken, buildDeviceInfo())
+                val response = api.enroll(pendingToken, buildDeviceInfo(context))
                 prefs.deviceToken = response.getString("device_token")
                 prefs.pollIntervalSeconds = response.optInt("poll_interval_seconds", 300)
                 prefs.pendingEnrollmentToken = null

@@ -21,4 +21,6 @@
     <string name="action_connecting">Connecting…</string>
     <string name="config_error_empty">Fill in both fields</string>
     <string name="config_scan_failed">Couldn\'t read a valid QR code</string>
+    <string name="agent_service_channel_name">Gobelino background sync</string>
+    <string name="agent_service_notification_title">Gobelino is keeping this device in sync</string>
 </resources>
