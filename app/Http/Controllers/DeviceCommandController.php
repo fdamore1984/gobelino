@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Models\DeviceCommand;
+use App\Services\DeviceWakeupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,10 @@ use Illuminate\Validation\Rule;
 
 class DeviceCommandController extends Controller
 {
+    public function __construct(protected DeviceWakeupService $wakeup)
+    {
+    }
+
     /**
      * Queues a command for a device: it's picked up and executed at
      * its next poll (no push involved), and the outcome is reported
@@ -49,6 +54,11 @@ class DeviceCommandController extends Controller
             'type' => $data['type'],
             'payload' => $payload,
         ]);
+
+        // Wake up a poll() currently blocked (long-polling) for this
+        // device, so the command is delivered right away instead of
+        // waiting for the block to time out.
+        $this->wakeup->notify($device->id);
 
         $message = 'Command queued: it will be delivered at the device\'s next check-in.';
 
