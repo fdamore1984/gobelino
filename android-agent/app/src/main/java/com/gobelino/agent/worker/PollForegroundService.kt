@@ -112,7 +112,11 @@ class PollForegroundService : Service() {
                     NotificationManager.IMPORTANCE_MIN
                 ).apply {
                     setShowBadge(false)
-                    lockscreenVisibility = Notification.VISIBILITY_SECRET
+                    // PUBLIC (non SECRET): deve comparire anche a schermo
+                    // bloccato subito dopo un riavvio, cosi' si vede a
+                    // colpo d'occhio se il servizio e' effettivamente
+                    // ripartito senza dover sbloccare il dispositivo.
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 }
                 manager.createNotificationChannel(channel)
             }
