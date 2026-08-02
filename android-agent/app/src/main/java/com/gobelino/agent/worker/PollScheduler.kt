@@ -39,16 +39,29 @@ object PollScheduler {
      * Kicks everything off (device just provisioned/booted): starts
      * the foreground service and arms the watchdog. Uses KEEP for the
      * watchdog so it doesn't reset a check already pending.
+     *
+     * The foreground service start and the WorkManager watchdog are
+     * deliberately independent: this can run pre-unlock (via
+     * LOCKED_BOOT_COMPLETED), where WorkManager's own backing storage
+     * may not be reliably available yet. The service itself is what
+     * actually matters for receiving commands, so a WorkManager
+     * failure here must never stop it from starting — the watchdog
+     * schedule gets re-armed anyway once BOOT_COMPLETED fires after
+     * the first unlock.
      */
     fun scheduleNow(context: Context) {
         PollForegroundService.start(context)
 
-        val request = OneTimeWorkRequestBuilder<PollWorker>().build()
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            WORK_NAME,
-            ExistingWorkPolicy.KEEP,
-            request
-        )
+        try {
+            val request = OneTimeWorkRequestBuilder<PollWorker>().build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                request
+            )
+        } catch (e: Exception) {
+            // Swallowed on purpose, see kdoc above.
+        }
     }
 
     /**
