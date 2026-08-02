@@ -1,6 +1,8 @@
 package com.gobelino.agent.worker
 
 import android.content.Context
+import com.gobelino.agent.util.deviceProtected
+import com.gobelino.agent.util.migrateToDeviceProtected
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -14,9 +16,14 @@ object CommandResultStore {
     private const val PREFS = "agent_command_results"
     private const val KEY = "pending_results"
 
+    private fun prefs(context: Context) = context.run {
+        migrateToDeviceProtected(PREFS)
+        deviceProtected().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    }
+
     @Synchronized
     fun enqueue(context: Context, commandId: Int, status: String, result: String?) {
-        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val sp = prefs(context)
         val current = JSONArray(sp.getString(KEY, "[]"))
 
         current.put(JSONObject().apply {
@@ -31,7 +38,7 @@ object CommandResultStore {
     /** Returns all queued results as a list of JSON objects and clears the queue. */
     @Synchronized
     fun drain(context: Context): List<JSONObject> {
-        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val sp = prefs(context)
         val current = JSONArray(sp.getString(KEY, "[]"))
         sp.edit().remove(KEY).apply()
 
