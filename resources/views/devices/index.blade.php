@@ -7,7 +7,10 @@
         <h1 class="text-xl sm:text-2xl font-semibold text-gray-800">Devices</h1>
     </div>
 
-    @if (! $company->hasApnsConfigured())
+    {{-- Apple/iOS management is on hold for now — only Android is
+         active. Not deleted, just hidden: uncomment when iOS support
+         is turned back on. --}}
+    {{-- @if (! $company->hasApnsConfigured())
         <div class="bg-white rounded-xl shadow p-6 text-center mb-6">
             <h2 class="font-medium text-gray-800 mb-2">Configure the APNs push certificate</h2>
             <p class="text-sm text-gray-500 mb-4">
@@ -19,7 +22,7 @@
                 Configure APNs
             </a>
         </div>
-    @endif
+    @endif --}}
 
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <form method="POST" action="{{ route('devices.enroll') }}">
@@ -31,7 +34,7 @@
             </button>
         </form>
 
-        <form method="POST" action="{{ route('devices.enroll') }}">
+        {{-- <form method="POST" action="{{ route('devices.enroll') }}">
             @csrf
             <input type="hidden" name="platform" value="ios">
             <button type="submit"
@@ -40,7 +43,7 @@
                     class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-black transition text-sm disabled:opacity-40 disabled:cursor-not-allowed">
                 Add iPhone/iPad (generate QR)
             </button>
-        </form>
+        </form> --}}
     </div>
 
     @if ($devices->isEmpty())
