@@ -117,5 +117,9 @@ object PollRunner {
         return bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
     }
 
-    const val MIN_LOOP_DELAY_SECONDS = 1
+    // Floor di sicurezza indipendente dal server: anche se il server
+    // rispondesse sempre istantaneamente (es. Redis giu', bug futuro),
+    // l'agent non deve mai scendere sotto questo intervallo tra due
+    // poll consecutivi.
+    const val MIN_LOOP_DELAY_SECONDS = 5
 }
