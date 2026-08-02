@@ -20,6 +20,15 @@ class ApiClient(private val baseUrl: String) {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
+    // /poll is now long-polling: the server can hold the request open
+    // up to ~25s (DeviceWakeupService::LONG_POLL_TIMEOUT_SECONDS)
+    // waiting for a command instead of returning immediately. This
+    // client needs a read timeout comfortably above that, or we'd cut
+    // the connection ourselves before the server ever gets to answer.
+    private val pollHttp = http.newBuilder()
+        .readTimeout(35, TimeUnit.SECONDS)
+        .build()
+
     /** POST /api/agent/enroll — trades the one-time QR token for a device_token. */
     fun enroll(enrollmentToken: String, deviceInfo: JSONObject): JSONObject {
         deviceInfo.put("enrollment_token", enrollmentToken)
@@ -44,7 +53,7 @@ class ApiClient(private val baseUrl: String) {
             .post(status.toString().toRequestBody(JSON))
             .build()
 
-        http.newCall(request).execute().use { response ->
+        pollHttp.newCall(request).execute().use { response ->
             val body = response.body?.string().orEmpty()
             if (!response.isSuccessful) throw ApiException(response.code, body)
             return JSONObject(body)
