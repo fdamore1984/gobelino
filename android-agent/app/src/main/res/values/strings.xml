@@ -4,6 +4,8 @@
     <string name="status_enrolling">Provisioning received, completing enrollment…</string>
     <string name="status_enrolled">Device managed by Gobelino.</string>
     <string name="action_force_sync">Force server connection</string>
+    <string name="action_update_apk">Update app</string>
+    <string name="update_apk_no_server">Not provisioned yet: no server to download the update from.</string>
     <string name="action_syncing">Connecting…</string>
     <string name="sync_success">Sync completed</string>
     <string name="sync_failed">Sync failed, try again</string>
