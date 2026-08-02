@@ -3,9 +3,13 @@ package com.gobelino.agent.util
 import android.content.Context
 
 class Prefs private constructor(context: Context) {
-    private val sp = context.getSharedPreferences("agent_prefs", Context.MODE_PRIVATE)
+    private val sp = run {
+        context.migrateToDeviceProtected(PREFS_NAME)
+        context.deviceProtected().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     companion object {
+        private const val PREFS_NAME = "agent_prefs"
         @Volatile private var instance: Prefs? = null
         fun of(context: Context): Prefs =
             instance ?: synchronized(this) {
