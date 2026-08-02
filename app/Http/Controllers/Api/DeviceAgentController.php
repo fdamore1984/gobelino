@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\DeviceCommand;
 use App\Models\EnrollmentToken;
+use App\Services\DeviceWakeupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Validator;
  */
 class DeviceAgentController extends Controller
 {
+    public function __construct(protected DeviceWakeupService $wakeup)
+    {
+    }
+
     /**
      * First call the agent makes right after being set as Device
      * Owner. Trades the one-time enrollment token for a permanent
@@ -118,15 +123,17 @@ class DeviceAgentController extends Controller
             'last_poll_at' => now(),
         ], fn ($value) => $value !== null));
 
-        $pendingCommands = $device->commands()
-            ->where('status', DeviceCommand::STATUS_PENDING)
-            ->orderBy('id')
-            ->get();
+        $pendingCommands = $this->fetchAndMarkSent($device);
 
-        $pendingCommands->each(fn (DeviceCommand $command) => $command->update([
-            'status' => DeviceCommand::STATUS_SENT,
-            'sent_at' => now(),
-        ]));
+        if ($pendingCommands->isEmpty()) {
+            // Nothing to deliver right now: instead of returning
+            // immediately (forcing the agent to wait out a full
+            // interval before asking again), hold the request open
+            // and give a command created in the meantime a chance to
+            // be delivered in THIS response instead of the next one.
+            $this->wakeup->wait($device->id);
+            $pendingCommands = $this->fetchAndMarkSent($device);
+        }
 
         return response()->json([
             'poll_interval_seconds' => $device->poll_interval_seconds,
@@ -138,6 +145,22 @@ class DeviceAgentController extends Controller
                 'payload' => $command->payload,
             ]),
         ]);
+    }
+
+    /** Fetches pending commands for a device and marks them as sent. */
+    protected function fetchAndMarkSent(Device $device)
+    {
+        $pendingCommands = $device->commands()
+            ->where('status', DeviceCommand::STATUS_PENDING)
+            ->orderBy('id')
+            ->get();
+
+        $pendingCommands->each(fn (DeviceCommand $command) => $command->update([
+            'status' => DeviceCommand::STATUS_SENT,
+            'sent_at' => now(),
+        ]));
+
+        return $pendingCommands;
     }
 
     protected function authenticateDevice(Request $request): ?Device
