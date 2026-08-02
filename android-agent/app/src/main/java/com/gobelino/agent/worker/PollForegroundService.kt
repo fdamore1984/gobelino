@@ -74,7 +74,15 @@ class PollForegroundService : Service() {
 
     private suspend fun pollLoop() {
         while (scope.isActive) {
-            val waitSeconds = (PollRunner.runOnce(applicationContext)).coerceAtLeast(10)
+            // No floor here on purpose: with /poll now long-polling
+            // server-side, a successful cycle returns MIN_LOOP_DELAY_SECONDS
+            // (currently 1s) because the "waiting" already happened
+            // inside the HTTP call itself — a floor like the old 10s
+            // would silently cancel out that latency improvement.
+            // runOnce() already falls back to poll_interval_seconds on
+            // any failure, which is what actually prevents tight-looping
+            // against a dead network/server.
+            val waitSeconds = PollRunner.runOnce(applicationContext)
             // Renew every cycle rather than acquire-once-forever: if the
             // service ever dies without onDestroy() running (OEM kill,
             // crash), the lock still expires on its own instead of
