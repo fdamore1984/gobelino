@@ -17,6 +17,7 @@
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
+        android:directBootAware="true"
         android:theme="@style/Theme.Agent">
 
         <!-- Entry point. Also the app shown by Lock Task (kiosk) mode. -->
@@ -70,6 +71,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
