@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private lateinit var forceSyncButton: Button
+    private lateinit var updateApkButton: Button
     private lateinit var commandsEmptyText: TextView
     private lateinit var commandsList: ListView
     private lateinit var commandsAdapter: ArrayAdapter<String>
@@ -66,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         statusText = findViewById(R.id.statusText)
         forceSyncButton = findViewById(R.id.forceSyncButton)
+        updateApkButton = findViewById(R.id.updateApkButton)
         workProfileButton = findViewById(R.id.workProfileButton)
         commandsEmptyText = findViewById(R.id.commandsEmptyText)
         commandsList = findViewById(R.id.commandsList)
@@ -87,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         commandsList.adapter = commandsAdapter
 
         forceSyncButton.setOnClickListener { forceSync() }
+        updateApkButton.setOnClickListener { downloadApkUpdate() }
         workProfileButton.setOnClickListener { startWorkProfileProvisioning() }
         updateWorkProfileUiState()
 
@@ -110,6 +113,34 @@ class MainActivity : AppCompatActivity() {
         applyKioskState()
         updateStatus()
         refreshCommandsList()
+    }
+
+    /**
+     * Triggered by the "Update app" button: opens
+     * routes/web.php's agent.apk.download route (same link already
+     * used manually / by the QR provisioning flow) in the browser so
+     * the system Download Manager fetches the current APK. Same
+     * package name + signing key as what's installed, so tapping the
+     * downloaded file afterwards updates in place — Device Owner
+     * status and all enrollment data survive, see Prefs/DirectBoot.
+     *
+     * Deliberately just opens the download rather than silently
+     * installing via PackageInstaller: the agent is Device Owner and
+     * technically could self-install with zero taps, but that's a
+     * bigger, riskier change than what was asked for here.
+     */
+    private fun downloadApkUpdate() {
+        val serverUrl = Prefs.of(this).serverUrl
+        if (serverUrl == null) {
+            Toast.makeText(this, R.string.update_apk_no_server, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse("$serverUrl/download/apk")
+        )
+        startActivity(intent)
     }
 
     /** Triggered by the "Forza connessione" button: runs a check-in right away. */
