@@ -60,22 +60,28 @@ object PollRunner {
 
             prefs.pollIntervalSeconds = response.optInt("poll_interval_seconds", prefs.pollIntervalSeconds)
             prefs.kioskEnabled = response.optBoolean("kiosk_enabled", false)
-            nextDelaySeconds = prefs.pollIntervalSeconds
 
             val commands = response.optJSONArray("commands") ?: JSONArray()
             for (i in 0 until commands.length()) {
                 CommandExecutor.execute(context, commands.getJSONObject(i))
             }
 
-            // We just executed command(s): don't wait a full interval to
-            // report the "acked" result back, do it on the very next tick.
-            if (commands.length() > 0) {
-                nextDelaySeconds = FAST_FOLLOWUP_SECONDS
-            }
+            // The server now does the "waiting" for us (long-polling:
+            // it holds /poll open until a command shows up or ~25s
+            // pass), so a successful round-trip means it's already
+            // time to ask again — no reason to also sleep for
+            // poll_interval_seconds on top of that. That field is
+            // kept only for the backend's isOnline() staleness check
+            // and as the fallback below.
+            nextDelaySeconds = MIN_LOOP_DELAY_SECONDS
         } catch (e: Exception) {
             // Swallowed on purpose: the next scheduled run is our retry
             // mechanism, we don't want an exception here to take down
-            // the caller's loop (Worker or foreground service).
+            // the caller's loop (Worker or foreground service). On
+            // failure nextDelaySeconds is untouched, i.e. still
+            // prefs.pollIntervalSeconds from the top of this function —
+            // that backoff matters here specifically, to avoid hammering
+            // the server (or a dead network) in a tight retry loop.
         }
 
         prefs.lastHeartbeatAtMillis = System.currentTimeMillis()
@@ -111,5 +117,5 @@ object PollRunner {
         return bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
     }
 
-    const val FAST_FOLLOWUP_SECONDS = 15
+    const val MIN_LOOP_DELAY_SECONDS = 1
 }
