@@ -1,6 +1,8 @@
 package com.gobelino.agent.worker
 
 import android.content.Context
+import com.gobelino.agent.util.deviceProtected
+import com.gobelino.agent.util.migrateToDeviceProtected
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -15,6 +17,11 @@ object CommandHistoryStore {
     private const val KEY = "history"
     private const val MAX_ENTRIES = 30
 
+    private fun prefs(context: Context) = context.run {
+        migrateToDeviceProtected(PREFS)
+        deviceProtected().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    }
+
     data class Entry(
         val id: Int,
         val type: String,
@@ -25,7 +32,7 @@ object CommandHistoryStore {
 
     @Synchronized
     fun record(context: Context, id: Int, type: String, status: String, result: String?) {
-        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val sp = prefs(context)
         val current = JSONArray(sp.getString(KEY, "[]"))
 
         val entry = JSONObject().apply {
@@ -50,7 +57,7 @@ object CommandHistoryStore {
 
     @Synchronized
     fun all(context: Context): List<Entry> {
-        val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val sp = prefs(context)
         val current = JSONArray(sp.getString(KEY, "[]"))
 
         return (0 until current.length()).map {
