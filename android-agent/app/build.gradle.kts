@@ -28,7 +28,8 @@ android {
         // In CI passiamo APP_VERSION_CODE=github.run_number cosi' ogni build ha un versionCode crescente
         // e Android accetta l'update sui dispositivi gia' arruolati.
         versionCode = System.getenv("APP_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "1.0.0"
+        // versionName resta leggibile ma cambia ad ogni build (es. 1.0.47), invece di restare fisso a 1.0.0
+        versionName = "1.0.${System.getenv("APP_VERSION_CODE") ?: "0"}"
     }
 
     buildTypes {
