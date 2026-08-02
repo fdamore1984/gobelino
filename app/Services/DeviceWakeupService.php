@@ -28,6 +28,9 @@ class DeviceWakeupService
     /** Cap on how long a single poll() blocks before returning empty. */
     public const LONG_POLL_TIMEOUT_SECONDS = 25;
 
+    /** Attesa usata come fallback quando Redis non e' raggiungibile. */
+    private const FALLBACK_WAIT_SECONDS = 10;
+
     /** Wakes up any poll() currently blocked waiting for this device. */
     public function notify(int $deviceId): void
     {
@@ -50,7 +53,12 @@ class DeviceWakeupService
         try {
             Redis::connection()->blpop([$this->key($deviceId)], $timeoutSeconds);
         } catch (Throwable $e) {
-            // Swallowed on purpose, see class docblock.
+            // Redis non raggiungibile: niente vero long-poll, ma non
+            // possiamo tornare istantaneamente o l'agent (che ora non
+            // aggiunge piu' un'attesa lato client dopo un round-trip
+            // riuscito) martellerebbe il server in loop stretto.
+            // Fallback: aspetta comunque un intervallo minimo.
+            sleep(min($timeoutSeconds, self::FALLBACK_WAIT_SECONDS));
         }
     }
 
