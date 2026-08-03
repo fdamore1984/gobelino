@@ -25,6 +25,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import kotlinx.coroutines.launch
 
 /**
@@ -130,35 +131,43 @@ class MainActivity : AppCompatActivity() {
      * quando l'utente riapre l'app.
      */
     private fun ensureIgnoringBatteryOptimizations() {
-        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        if (!dpm.isDeviceOwnerApp(packageName)) return
-
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        if (pm.isIgnoringBatteryOptimizations(packageName)) return
-
-        // Raffreddamento: se e' stato appena chiesto (es. un attimo fa da
-        // ProvisioningActivity, appena finito il provisioning) non
-        // rilanciamo subito lo stesso dialogo. Su Android 14+/Samsung un
-        // secondo startActivity troppo ravvicinato al primo puo' scontrarsi
-        // con le restrizioni sui Background Activity Launch e far
-        // crashare l'app invece di fallire silenziosamente.
-        val elapsed = System.currentTimeMillis() - Prefs.of(this).batteryOptimizationAskedAtMillis
-        if (elapsed < BATTERY_OPT_RETRY_COOLDOWN_MILLIS) return
-
         try {
-            Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
-            startActivity(
-                android.content.Intent(
-                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                    Uri.parse("package:$packageName")
-                )
+            val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            if (!dpm.isDeviceOwnerApp(packageName)) return
+
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (pm.isIgnoringBatteryOptimizations(packageName)) return
+
+            // Raffreddamento: se e' stato appena chiesto (es. un attimo fa da
+            // ProvisioningActivity, appena finito il provisioning) non
+            // rilanciamo subito lo stesso dialogo. Su Android 14+/Samsung un
+            // secondo startActivity troppo ravvicinato al primo puo' scontrarsi
+            // con le restrizioni sui Background Activity Launch e far
+            // crashare l'app invece di fallire silenziosamente.
+            val elapsed = System.currentTimeMillis() - Prefs.of(this).batteryOptimizationAskedAtMillis
+            if (elapsed < BATTERY_OPT_RETRY_COOLDOWN_MILLIS) return
+
+            val intent = android.content.Intent(
+                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                Uri.parse("package:$packageName")
             )
+            if (intent.resolveActivity(packageManager) == null) {
+                // Build senza questo dialogo (es. alcune AOSP custom):
+                // niente da fare, non ritentare ogni volta a vuoto.
+                Log.w("MainActivity", "no activity resolves ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS")
+                return
+            }
+
+            Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
+            startActivity(intent)
         } catch (e: Exception) {
-            // Nessuna azione: la build non espone questo dialogo, o il
-            // sistema ha rifiutato l'avvio dell'activity in questo momento.
-            // Si ritenterà al prossimo onResume, passato il cooldown.
+            // Nessuna azione: qualunque cosa vada storta qui non deve mai
+            // far crashare l'app. Si ritenterà al prossimo onResume,
+            // passato il cooldown.
+            Log.w("MainActivity", "failed to request battery optimization exemption", e)
         }
     }
+
 
     /**
      * Triggered by the "Update app" button: opens

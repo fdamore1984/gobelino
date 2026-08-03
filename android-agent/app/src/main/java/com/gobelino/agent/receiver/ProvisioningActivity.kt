@@ -7,16 +7,32 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import com.gobelino.agent.util.Prefs
 
 class ProvisioningActivity : Activity() {
 
     companion object {
+        private const val TAG = "ProvisioningActivity"
         private const val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS = 3001
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            dispatch()
+        } catch (e: Throwable) {
+            // Qualunque cosa vada storta qui non deve MAI far crashare
+            // il provisioning: è uno step best-effort (chiedere
+            // un'esenzione), non deve poter bloccare l'arruolamento del
+            // dispositivo. Logghiamo e chiudiamo puliti.
+            Log.e(TAG, "provisioning step failed, continuing anyway", e)
+            runCatching { setResult(RESULT_OK) }
+            finish()
+        }
+    }
+
+    private fun dispatch() {
         when (intent?.action) {
             DevicePolicyManager.ACTION_GET_PROVISIONING_MODE -> {
                 // Salva subito gli extra: qui sono garantiti presenti.
@@ -65,15 +81,30 @@ class ProvisioningActivity : Activity() {
                 Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                 Uri.parse("package:$packageName")
             )
+            // Verifica che qualcosa possa davvero gestire l'intent prima
+            // di lanciarlo: su alcune build AOSP custom (es. Teclast)
+            // l'azione non è risolvibile, e su alcuni OEM chiamare
+            // startActivityForResult su un intent non risolvibile lancia
+            // un'eccezione diversa da ActivityNotFoundException (o crasha
+            // in modo non catturabile più a valle). Meglio controllare
+            // prima con resolveActivity ed evitare del tutto la chiamata
+            // se non c'è nessuno che risponde.
+            if (intent.resolveActivity(packageManager) == null) {
+                Log.w(TAG, "no activity resolves ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS on this build")
+                setResult(RESULT_OK)
+                finish()
+                return
+            }
+
             Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
             startActivityForResult(intent, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
         } catch (e: Exception) {
-            // Non solo ActivityNotFoundException: su Android 14+/Samsung un
-            // avvio di activity in questo punto del provisioning puo'
-            // incappare in restrizioni sui Background Activity Launch e
-            // lanciare SecurityException/IllegalStateException. In ogni
+            // Non solo ActivityNotFoundException: a seconda di OEM/versione
+            // può arrivare SecurityException (restrizioni Background
+            // Activity Launch su Android 14+/Samsung) o altro. In ogni
             // caso non blocchiamo il provisioning per questo: il fallback
             // in MainActivity ritenta più avanti.
+            Log.w(TAG, "failed to request battery optimization exemption", e)
             setResult(RESULT_OK)
             finish()
         }
