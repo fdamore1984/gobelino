@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_PROVISION_MANAGED_PROFILE = 2001
+        private const val BATTERY_OPT_RETRY_COOLDOWN_MILLIS = 60_000L
     }
 
     private lateinit var statusText: TextView
@@ -135,15 +136,27 @@ class MainActivity : AppCompatActivity() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         if (pm.isIgnoringBatteryOptimizations(packageName)) return
 
+        // Raffreddamento: se e' stato appena chiesto (es. un attimo fa da
+        // ProvisioningActivity, appena finito il provisioning) non
+        // rilanciamo subito lo stesso dialogo. Su Android 14+/Samsung un
+        // secondo startActivity troppo ravvicinato al primo puo' scontrarsi
+        // con le restrizioni sui Background Activity Launch e far
+        // crashare l'app invece di fallire silenziosamente.
+        val elapsed = System.currentTimeMillis() - Prefs.of(this).batteryOptimizationAskedAtMillis
+        if (elapsed < BATTERY_OPT_RETRY_COOLDOWN_MILLIS) return
+
         try {
+            Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
             startActivity(
                 android.content.Intent(
                     Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                     Uri.parse("package:$packageName")
                 )
             )
-        } catch (e: android.content.ActivityNotFoundException) {
-            // Nessuna azione: la build non espone questo dialogo.
+        } catch (e: Exception) {
+            // Nessuna azione: la build non espone questo dialogo, o il
+            // sistema ha rifiutato l'avvio dell'activity in questo momento.
+            // Si ritenterà al prossimo onResume, passato il cooldown.
         }
     }
 

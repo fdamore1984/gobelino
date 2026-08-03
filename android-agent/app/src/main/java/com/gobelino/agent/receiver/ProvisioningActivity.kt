@@ -65,11 +65,15 @@ class ProvisioningActivity : Activity() {
                 Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                 Uri.parse("package:$packageName")
             )
+            Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
             startActivityForResult(intent, REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-        } catch (e: android.content.ActivityNotFoundException) {
-            // Build che non espone questo dialogo: non blocchiamo il
-            // provisioning per questo, il fallback in MainActivity
-            // ritenterà al primo avvio in foreground.
+        } catch (e: Exception) {
+            // Non solo ActivityNotFoundException: su Android 14+/Samsung un
+            // avvio di activity in questo punto del provisioning puo'
+            // incappare in restrizioni sui Background Activity Launch e
+            // lanciare SecurityException/IllegalStateException. In ogni
+            // caso non blocchiamo il provisioning per questo: il fallback
+            // in MainActivity ritenta più avanti.
             setResult(RESULT_OK)
             finish()
         }

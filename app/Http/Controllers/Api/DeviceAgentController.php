@@ -9,12 +9,13 @@ use App\Models\EnrollmentToken;
 use App\Services\DeviceWakeupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
  * Endpoints called by the agent APK. No web session/CSRF: devices
  * authenticate with either the one-time enrollment token (only for
- * /enroll) or their permanent device_token (for every other call).
+ * /enroll) or their permanent device_token (for evaery other call).
  */
 class DeviceAgentController extends Controller
 {
@@ -38,45 +39,78 @@ class DeviceAgentController extends Controller
             'imei' => ['nullable', 'string'],
         ]);
 
-        $enrollmentToken = EnrollmentToken::where('token', $data['enrollment_token'])
-            ->where('platform', 'android')
-            ->first();
+        // Tutto il check-then-act (token valido? già usato? crea il
+        // device? segna il token usato?) deve avvenire come un'unica
+        // operazione atomica: con connessioni instabili l'agent può
+        // ripetere la stessa richiesta (perché non ha ricevuto la
+        // risposta alla precedente, anche se il server l'aveva già
+        // gestita), e due tentativi possono arrivare quasi in
+        // contemporanea. Senza lock, entrambi possono superare il
+        // controllo "used = false" prima che uno dei due lo marchi
+        // used, creando due device per lo stesso token.
+        $result = DB::transaction(function () use ($data) {
+            $enrollmentToken = EnrollmentToken::where('token', $data['enrollment_token'])
+                ->where('platform', 'android')
+                ->lockForUpdate()
+                ->first();
 
-        if (! $enrollmentToken) {
-            return response()->json(['error' => 'invalid_token'], 404);
-        }
+            if (! $enrollmentToken) {
+                return ['status' => 404, 'body' => ['error' => 'invalid_token']];
+            }
 
-        if ($enrollmentToken->used) {
-            return response()->json(['error' => 'token_already_used'], 409);
-        }
+            if ($enrollmentToken->used) {
+                // Non necessariamente un errore: potrebbe essere lo
+                // stesso agent che ripete l'enroll perché non ha mai
+                // ricevuto la risposta alla chiamata precedente, che
+                // però lato server era già andata a buon fine. Se
+                // troviamo il device creato da questo stesso token,
+                // restituiamo di nuovo le sue credenziali invece di un
+                // 409 senza via d'uscita (l'agent resterebbe bloccato
+                // per sempre con un token ormai inutilizzabile).
+                $existingDevice = Device::where('enrollment_token_id', $enrollmentToken->id)->first();
 
-        if ($enrollmentToken->expires_at && $enrollmentToken->expires_at->isPast()) {
-            return response()->json(['error' => 'token_expired'], 410);
-        }
+                if ($existingDevice) {
+                    return ['status' => 200, 'body' => [
+                        'device_id' => $existingDevice->id,
+                        'device_token' => $existingDevice->device_token,
+                        'poll_interval_seconds' => $existingDevice->poll_interval_seconds,
+                    ]];
+                }
 
-        $device = Device::create([
-            'company_id' => $enrollmentToken->company_id,
-            'added_by' => $enrollmentToken->created_by,
-            'platform' => 'android',
-            'device_token' => Device::generateDeviceToken(),
-            'name' => trim(($data['manufacturer'] ?? '').' '.($data['model'] ?? '')) ?: 'Android device',
-            'model' => $data['model'] ?? null,
-            'manufacturer' => $data['manufacturer'] ?? null,
-            'android_version' => $data['android_version'] ?? null,
-            'serial_number' => $data['serial_number'] ?? null,
-            'imei' => $data['imei'] ?? null,
-            'status' => 'active',
-            'is_device_owner' => true,
-            'last_poll_at' => now(),
-        ]);
+                return ['status' => 409, 'body' => ['error' => 'token_already_used']];
+            }
 
-        $enrollmentToken->markUsed();
+            if ($enrollmentToken->expires_at && $enrollmentToken->expires_at->isPast()) {
+                return ['status' => 410, 'body' => ['error' => 'token_expired']];
+            }
 
-        return response()->json([
-            'device_id' => $device->id,
-            'device_token' => $device->device_token,
-            'poll_interval_seconds' => $device->poll_interval_seconds,
-        ], 201);
+            $device = Device::create([
+                'company_id' => $enrollmentToken->company_id,
+                'added_by' => $enrollmentToken->created_by,
+                'enrollment_token_id' => $enrollmentToken->id,
+                'platform' => 'android',
+                'device_token' => Device::generateDeviceToken(),
+                'name' => trim(($data['manufacturer'] ?? '').' '.($data['model'] ?? '')) ?: 'Android device',
+                'model' => $data['model'] ?? null,
+                'manufacturer' => $data['manufacturer'] ?? null,
+                'android_version' => $data['android_version'] ?? null,
+                'serial_number' => $data['serial_number'] ?? null,
+                'imei' => $data['imei'] ?? null,
+                'status' => 'active',
+                'is_device_owner' => true,
+                'last_poll_at' => now(),
+            ]);
+
+            $enrollmentToken->markUsed();
+
+            return ['status' => 201, 'body' => [
+                'device_id' => $device->id,
+                'device_token' => $device->device_token,
+                'poll_interval_seconds' => $device->poll_interval_seconds,
+            ]];
+        });
+
+        return response()->json($result['body'], $result['status']);
     }
 
     /**

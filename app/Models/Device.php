@@ -15,6 +15,7 @@ class Device extends Model
     protected $fillable = [
         'company_id',
         'added_by',
+        'enrollment_token_id',
         'name',
         'platform',
         'device_token',

@@ -56,4 +56,17 @@ class Prefs private constructor(context: Context) {
     var lastHeartbeatAtMillis: Long
         get() = sp.getLong("last_heartbeat_at_millis", 0L)
         set(value) = sp.edit().putLong("last_heartbeat_at_millis", value).apply()
+
+    /**
+     * Timestamp dell'ultimo tentativo di mostrare il dialogo
+     * ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS (da ProvisioningActivity
+     * o dal fallback in MainActivity). Usato solo per non rilanciarlo a
+     * distanza di pochi secondi da se stesso: su Android 14+/Samsung
+     * un secondo startActivity troppo ravvicinato al primo puo' scontrarsi
+     * con le restrizioni sui Background Activity Launch e far crashare
+     * l'app invece di limitarsi a fallire silenziosamente.
+     */
+    var batteryOptimizationAskedAtMillis: Long
+        get() = sp.getLong("battery_opt_asked_at_millis", 0L)
+        set(value) = sp.edit().putLong("battery_opt_asked_at_millis", value).apply()
 }
