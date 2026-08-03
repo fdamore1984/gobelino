@@ -22,6 +22,9 @@ import org.json.JSONObject
 import android.app.Activity
 import android.content.ComponentName
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import kotlinx.coroutines.launch
 
 /**
@@ -113,6 +116,35 @@ class MainActivity : AppCompatActivity() {
         applyKioskState()
         updateStatus()
         refreshCommandsList()
+        ensureIgnoringBatteryOptimizations()
+    }
+
+    /**
+     * Fallback per il caso in cui il tap durante ACTION_ADMIN_POLICY_COMPLIANCE
+     * (vedi ProvisioningActivity) non sia andato a buon fine — build OEM che
+     * salta lo step, dialogo perso per rotazione/interruzione, ecc. Senza
+     * questa esenzione, dopo un riavvio il sistema mette l'app nello
+     * standby bucket "rare" e blocca alarm/job di recovery in background.
+     * Rifatta solo se davvero manca, quindi al massimo un tap una tantum
+     * quando l'utente riapre l'app.
+     */
+    private fun ensureIgnoringBatteryOptimizations() {
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (!dpm.isDeviceOwnerApp(packageName)) return
+
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (pm.isIgnoringBatteryOptimizations(packageName)) return
+
+        try {
+            startActivity(
+                android.content.Intent(
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:$packageName")
+                )
+            )
+        } catch (e: android.content.ActivityNotFoundException) {
+            // Nessuna azione: la build non espone questo dialogo.
+        }
     }
 
     /**
