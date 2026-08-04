@@ -78,9 +78,6 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
         val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
         val admin = componentName(context)
 
-        // Finalizes Device Owner / Profile Owner activation.
-        dpm.setProfileEnabled(admin)
-
         // Extras we embedded in the provisioning QR (see
         // AndroidAgentService::createEnrollmentToken on the backend).
         val extras: Bundle? = intent.getBundleExtra(
@@ -105,9 +102,21 @@ class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
             grantNotificationPermission(context, dpm)
         } else {
             // Caso Work Profile: questo callback gira DENTRO il profilo
-            // di lavoro appena creato. Apriamo subito la nostra
-            // MainActivity qui, cosi' l'utente si ritrova l'app aperta
-            // nel profilo di lavoro senza doverla cercare a mano.
+            // di lavoro appena creato, che parte disabilitato finche' non
+            // lo si abilita esplicitamente — a differenza del Device
+            // Owner, dove non esiste alcun "profilo" da abilitare (da qui
+            // veniva il crash: chiamare setProfileEnabled() fuori da un
+            // profilo di lavoro lancia SecurityException).
+            try {
+                dpm.setProfileEnabled(admin)
+            } catch (e: Exception) {
+                // Non fatale: se fallisce restiamo comunque con l'app
+                // avviabile a mano dal profilo di lavoro.
+            }
+
+            // Apriamo subito la nostra MainActivity qui, cosi' l'utente
+            // si ritrova l'app aperta nel profilo di lavoro senza doverla
+            // cercare a mano.
             val launchIntent = Intent(context, com.gobelino.agent.MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
