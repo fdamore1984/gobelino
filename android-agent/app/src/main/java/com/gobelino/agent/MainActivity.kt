@@ -22,10 +22,6 @@ import org.json.JSONObject
 import android.app.Activity
 import android.content.ComponentName
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.PowerManager
-import android.provider.Settings
-import android.util.Log
 import kotlinx.coroutines.launch
 
 /**
@@ -41,7 +37,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_PROVISION_MANAGED_PROFILE = 2001
-        private const val BATTERY_OPT_RETRY_COOLDOWN_MILLIS = 60_000L
     }
 
     private lateinit var statusText: TextView
@@ -118,55 +113,6 @@ class MainActivity : AppCompatActivity() {
         applyKioskState()
         updateStatus()
         refreshCommandsList()
-        ensureIgnoringBatteryOptimizations()
-    }
-
-    /**
-     * Fallback per il caso in cui il tap durante ACTION_ADMIN_POLICY_COMPLIANCE
-     * (vedi ProvisioningActivity) non sia andato a buon fine — build OEM che
-     * salta lo step, dialogo perso per rotazione/interruzione, ecc. Senza
-     * questa esenzione, dopo un riavvio il sistema mette l'app nello
-     * standby bucket "rare" e blocca alarm/job di recovery in background.
-     * Rifatta solo se davvero manca, quindi al massimo un tap una tantum
-     * quando l'utente riapre l'app.
-     */
-    private fun ensureIgnoringBatteryOptimizations() {
-        try {
-            val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-            if (!dpm.isDeviceOwnerApp(packageName)) return
-
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            if (pm.isIgnoringBatteryOptimizations(packageName)) return
-
-            // Raffreddamento: se e' stato appena chiesto (es. un attimo fa da
-            // ProvisioningActivity, appena finito il provisioning) non
-            // rilanciamo subito lo stesso dialogo. Su Android 14+/Samsung un
-            // secondo startActivity troppo ravvicinato al primo puo' scontrarsi
-            // con le restrizioni sui Background Activity Launch e far
-            // crashare l'app invece di fallire silenziosamente.
-            val elapsed = System.currentTimeMillis() - Prefs.of(this).batteryOptimizationAskedAtMillis
-            if (elapsed < BATTERY_OPT_RETRY_COOLDOWN_MILLIS) return
-
-            val intent = android.content.Intent(
-                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                Uri.parse("package:$packageName")
-            )
-            if (intent.resolveActivity(packageManager) == null) {
-                // Build senza questo dialogo (es. alcune AOSP custom):
-                // niente da fare, non ritentare ogni volta a vuoto.
-                Log.w("MainActivity", "no activity resolves ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS")
-                return
-            }
-
-            Prefs.of(this).batteryOptimizationAskedAtMillis = System.currentTimeMillis()
-            startActivity(intent)
-        } catch (e: Exception) {
-            // Nessuna azione: qualunque cosa vada storta qui non deve mai
-            // far crashare l'app. Si ritenterà al prossimo onResume,
-            // passato il cooldown.
-            Log.w("MainActivity", "failed to request battery optimization exemption", e)
-            runCatching { com.gobelino.agent.util.CrashLogger.record(this, "MainActivity", e) }
-        }
     }
 
 
