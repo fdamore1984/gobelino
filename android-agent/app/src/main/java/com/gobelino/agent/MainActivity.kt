@@ -165,6 +165,7 @@ class MainActivity : AppCompatActivity() {
             // far crashare l'app. Si ritenterà al prossimo onResume,
             // passato il cooldown.
             Log.w("MainActivity", "failed to request battery optimization exemption", e)
+            runCatching { com.gobelino.agent.util.CrashLogger.record(this, "MainActivity", e) }
         }
     }
 

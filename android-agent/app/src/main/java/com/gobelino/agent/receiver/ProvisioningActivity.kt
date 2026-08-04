@@ -5,6 +5,8 @@ import android.app.admin.DevicePolicyManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
@@ -15,20 +17,26 @@ class ProvisioningActivity : Activity() {
     companion object {
         private const val TAG = "ProvisioningActivity"
         private const val REQUEST_IGNORE_BATTERY_OPTIMIZATIONS = 3001
+
+        // Ritardo prima di chiedere l'esenzione batteria in
+        // ACTION_ADMIN_POLICY_COMPLIANCE. Il crash osservato (sia su
+        // Samsung/Android 16 sia su Teclast/Android 11) compare appena
+        // l'utente tocca "Next" nello step precedente: il sistema sta
+        // ancora completando la transizione da quella schermata e la
+        // finestra di questa activity non è ancora pienamente pronta per
+        // ospitare un nuovo dialogo. Un breve ritardo lascia che la
+        // transizione finisca prima di chiamare startActivityForResult.
+        private const val REQUEST_DELAY_MILLIS = 400L
     }
+
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
             dispatch()
         } catch (e: Throwable) {
-            // Qualunque cosa vada storta qui non deve MAI far crashare
-            // il provisioning: è uno step best-effort (chiedere
-            // un'esenzione), non deve poter bloccare l'arruolamento del
-            // dispositivo. Logghiamo e chiudiamo puliti.
-            Log.e(TAG, "provisioning step failed, continuing anyway", e)
-            runCatching { setResult(RESULT_OK) }
-            finish()
+            handleUnexpectedFailure(e)
         }
     }
 
@@ -58,8 +66,15 @@ class ProvisioningActivity : Activity() {
                 // per chiedere l'esenzione dall'ottimizzazione batteria. Se
                 // non richiesta qui, il sistema mette l'app in standby
                 // bucket "rare" dopo il primo riavvio, bloccando alarm/job
-                // di recovery (vedi BootRecoveryReceiver).
-                requestIgnoreBatteryOptimizationsThenFinish()
+                // di recovery (vedi BootRecoveryReceiver). Ritardata di
+                // proposito: vedi REQUEST_DELAY_MILLIS.
+                handler.postDelayed({
+                    try {
+                        requestIgnoreBatteryOptimizationsThenFinish()
+                    } catch (e: Throwable) {
+                        handleUnexpectedFailure(e)
+                    }
+                }, REQUEST_DELAY_MILLIS)
             }
             else -> finish()
         }
@@ -83,12 +98,7 @@ class ProvisioningActivity : Activity() {
             )
             // Verifica che qualcosa possa davvero gestire l'intent prima
             // di lanciarlo: su alcune build AOSP custom (es. Teclast)
-            // l'azione non è risolvibile, e su alcuni OEM chiamare
-            // startActivityForResult su un intent non risolvibile lancia
-            // un'eccezione diversa da ActivityNotFoundException (o crasha
-            // in modo non catturabile più a valle). Meglio controllare
-            // prima con resolveActivity ed evitare del tutto la chiamata
-            // se non c'è nessuno che risponde.
+            // l'azione non è risolvibile.
             if (intent.resolveActivity(packageManager) == null) {
                 Log.w(TAG, "no activity resolves ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS on this build")
                 setResult(RESULT_OK)
@@ -119,5 +129,21 @@ class ProvisioningActivity : Activity() {
             setResult(RESULT_OK)
             finish()
         }
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
+        super.onDestroy()
+    }
+
+    private fun handleUnexpectedFailure(e: Throwable) {
+        // Qualunque cosa vada storta qui non deve MAI bloccare il
+        // provisioning: è uno step best-effort (chiedere un'esenzione).
+        // Logghiamo su file (leggibile senza adb, vedi CrashLogger) e
+        // chiudiamo puliti invece di lasciar propagare l'eccezione.
+        Log.e(TAG, "provisioning step failed, continuing anyway", e)
+        runCatching { com.gobelino.agent.util.CrashLogger.record(this, "ProvisioningActivity", e) }
+        runCatching { setResult(RESULT_OK) }
+        runCatching { finish() }
     }
 }
