@@ -120,6 +120,8 @@
                                             onclick="gobelinoCommandClick(this, {{ $device->id }}, 'set_kiosk')">
                                         {{ $device->kiosk_enabled ? 'Disable kiosk' : 'Enable kiosk' }}
                                     </button>
+                                    <button type="button" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+                                            onclick="gobelinoInstallAppClick(this, {{ $device->id }})">Install app…</button>
                                     <button type="button" class="w-full text-left px-3 py-2 text-red-700 hover:bg-red-50"
                                             onclick="gobelinoCommandClick(this, {{ $device->id }}, 'wipe', 'Wipe this device? This cannot be undone.')">Wipe</button>
                                     <form method="POST" action="{{ route('devices.destroy', $device) }}"

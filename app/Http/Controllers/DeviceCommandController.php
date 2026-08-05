@@ -37,13 +37,26 @@ class DeviceCommandController extends Controller
                 DeviceCommand::TYPE_WIPE,
                 DeviceCommand::TYPE_REBOOT,
                 DeviceCommand::TYPE_SET_KIOSK,
+                DeviceCommand::TYPE_INSTALL_APP,
             ])],
+            // Only required/validated when type=install_app; irrelevant
+            // (and ignored) for every other command type.
+            'payload.apk_url' => [
+                Rule::requiredIf($request->input('type') === DeviceCommand::TYPE_INSTALL_APP),
+                'nullable', 'url', 'max:2048',
+                // The agent downloads this over plain HTTPS on the
+                // device: refuse anything else up front rather than
+                // let the agent fail later.
+                'starts_with:https://',
+            ],
         ]);
 
         if ($data['type'] === DeviceCommand::TYPE_SET_KIOSK) {
             $device->update(['kiosk_enabled' => ! $device->kiosk_enabled]);
 
             $payload = ['enabled' => $device->kiosk_enabled];
+        } elseif ($data['type'] === DeviceCommand::TYPE_INSTALL_APP) {
+            $payload = ['apk_url' => $data['payload']['apk_url']];
         } else {
             $payload = null;
         }

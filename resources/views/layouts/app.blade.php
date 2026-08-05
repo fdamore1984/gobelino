@@ -111,7 +111,9 @@
         });
 
         // --- Command sending (AJAX, no page reload) ---
-        function gobelinoSendCommand(deviceId, type) {
+        function gobelinoSendCommand(deviceId, type, payload) {
+            const body = payload ? { type: type, payload: payload } : { type: type };
+
             return fetch('{{ url('/devices') }}/' + deviceId + '/commands', {
                 method: 'POST',
                 headers: {
@@ -119,8 +121,40 @@
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
-                body: JSON.stringify({ type: type }),
+                body: JSON.stringify(body),
             }).then(res => res.json().then(data => ({ ok: res.ok, data: data })));
+        }
+
+        // Asks for the APK's public URL, then queues an install_app
+        // command carrying it. Kept separate from gobelinoCommandClick
+        // since this is the only command that needs input from the user
+        // rather than a plain confirm().
+        function gobelinoInstallAppClick(button, deviceId) {
+            const apkUrl = prompt('APK URL (public, https://…):');
+            if (!apkUrl) return;
+
+            if (!/^https:\/\//i.test(apkUrl.trim())) {
+                gobelinoToast('The URL must start with https://', true);
+                return;
+            }
+
+            const popover = button.closest('.gobelino-popover');
+            button.disabled = true;
+
+            gobelinoSendCommand(deviceId, 'install_app', { apk_url: apkUrl.trim() }).then(function (result) {
+                button.disabled = false;
+                if (popover) popover.classList.add('hidden');
+
+                if (result.ok && result.data.success) {
+                    gobelinoToast(result.data.message || 'Comando inviato.');
+                    if (typeof gobelinoRefreshNow === 'function') gobelinoRefreshNow();
+                } else {
+                    gobelinoToast((result.data && result.data.message) || 'Errore durante l\'invio del comando.', true);
+                }
+            }).catch(function () {
+                button.disabled = false;
+                gobelinoToast('Errore di rete durante l\'invio del comando.', true);
+            });
         }
 
         function gobelinoCommandClick(button, deviceId, type, confirmMessage) {

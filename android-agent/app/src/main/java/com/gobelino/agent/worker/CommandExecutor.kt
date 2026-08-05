@@ -14,7 +14,7 @@ import org.json.JSONObject
  */
 object CommandExecutor {
 
-    fun execute(context: Context, command: JSONObject) {
+    suspend fun execute(context: Context, command: JSONObject) {
         val id = command.getInt("id")
         val type = command.getString("type")
         val payload = command.optJSONObject("payload")
@@ -39,6 +39,12 @@ object CommandExecutor {
                     // startLockTask()/stopLockTask() next time it's
                     // in the foreground (LockTask can only be toggled
                     // from a running, visible activity).
+                }
+
+                "install_app" -> {
+                    val apkUrl = payload?.optString("apk_url")?.takeIf { it.isNotBlank() }
+                        ?: throw IllegalArgumentException("missing_apk_url")
+                    ApkInstaller.installFromUrl(context, apkUrl)
                 }
 
                 "apply_policy" -> {
