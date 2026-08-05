@@ -110,7 +110,7 @@
                                         <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
                                     </svg>
                                 </button>
-                                <div id="actions-{{ $device->id }}" class="gobelino-popover hidden absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm overflow-hidden">
+                                <div id="actions-{{ $device->id }}" class="gobelino-popover hidden absolute md:right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 text-sm overflow-hidden">
                                     <button type="button" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50"
                                             onclick="gobelinoCommandClick(this, {{ $device->id }}, 'lock')">Lock</button>
                                     <button type="button" class="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50"
