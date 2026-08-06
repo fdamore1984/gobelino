@@ -17,8 +17,21 @@
                     ];
                     [$label, $classes] = $statusMap[$command->status] ?? [$command->status, 'bg-gray-100 text-gray-600'];
                 @endphp
-                <span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap {{ $classes }}">{{ $label }}</span>
+                @if ($command->status === 'failed' && $command->result)
+                    <button type="button" onclick="gobelinoShowCommandDetail({{ $command->id }})"
+                            class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap underline decoration-dotted {{ $classes }}">{{ $label }}</button>
+                @else
+                    <span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap {{ $classes }}">{{ $label }}</span>
+                @endif
             </li>
         @endforeach
     </ul>
+
+    <script>
+        // gobelinoRegisterCommands (defined later, in layouts/app.blade.php's
+        // trailing script) doesn't exist yet at this point in the page —
+        // this partial is included before that script tag runs. Just stash
+        // the data; the layout script registers it once it's loaded.
+        window.gobelinoInitialCommands = (window.gobelinoInitialCommands || []).concat(@json($commands));
+    </script>
 @endif

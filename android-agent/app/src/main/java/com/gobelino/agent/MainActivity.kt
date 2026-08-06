@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var commandsEmptyText: TextView
     private lateinit var commandsList: ListView
     private lateinit var commandsAdapter: ArrayAdapter<String>
+    private var commandHistoryEntries: List<CommandHistoryStore.Entry> = emptyList()
     private lateinit var workProfileButton: Button
     private lateinit var workProfileConfigLayout: android.widget.LinearLayout
     private lateinit var serverUrlInput: android.widget.EditText
@@ -87,6 +88,13 @@ class MainActivity : AppCompatActivity() {
 
         commandsAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
         commandsList.adapter = commandsAdapter
+        // Tapping any entry shows its full detail (status, timestamp,
+        // and — most usefully for a "failed" one — the exact error
+        // message), since the one-line list item only has room for a
+        // short summary.
+        commandsList.setOnItemClickListener { _, _, position, _ ->
+            commandHistoryEntries.getOrNull(position)?.let { showCommandDetail(it) }
+        }
 
         forceSyncButton.setOnClickListener { forceSync() }
         updateApkButton.setOnClickListener { downloadApkUpdate() }
@@ -206,6 +214,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshCommandsList() {
         val entries = CommandHistoryStore.all(this)
+        commandHistoryEntries = entries
         val dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
 
         commandsAdapter.clear()
@@ -216,6 +225,30 @@ class MainActivity : AppCompatActivity() {
 
         commandsEmptyText.visibility = if (entries.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
         commandsList.visibility = if (entries.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+    }
+
+    /** Shows a command's full detail, notably the error message on a failed one. */
+    private fun showCommandDetail(entry: CommandHistoryStore.Entry) {
+        val dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+        val `when` = if (entry.receivedAtMillis > 0) dateFormat.format(Date(entry.receivedAtMillis)) else "—"
+
+        val message = buildString {
+            append(getString(R.string.command_detail_status, entry.status))
+            append("\n")
+            append(getString(R.string.command_detail_received_at, `when`))
+            if (!entry.result.isNullOrBlank()) {
+                append("\n\n")
+                append(getString(R.string.command_detail_result))
+                append("\n")
+                append(entry.result)
+            }
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.command_detail_title, entry.type))
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun updateWorkProfileButtonVisibility() {

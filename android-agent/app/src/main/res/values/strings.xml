@@ -12,6 +12,10 @@
     <string name="commands_header">Commands received from the server</string>
     <string name="commands_empty">No commands received yet.</string>
     <string name="command_entry_format">#%1$d · %2$s · %3$s</string>
+    <string name="command_detail_title">Command: %1$s</string>
+    <string name="command_detail_status">Status: %1$s</string>
+    <string name="command_detail_received_at">Received: %1$s</string>
+    <string name="command_detail_result">Detail:</string>
     <string name="action_create_work_profile">Create work profile</string>
     <string name="work_profile_unsupported">Work profile isn\'t supported on this device, or one already exists.</string>
     <string name="work_profile_launch_failed">Couldn\'t start work profile creation.</string>

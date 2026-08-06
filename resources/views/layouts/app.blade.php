@@ -75,6 +75,20 @@
     {{-- Toast notifications (e.g. "Command queued") --}}
     <div id="gobelino-toast" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    {{-- Command detail modal: shows the full error message behind a
+         "Fallito" badge, since the badge itself only has room for the
+         status label. --}}
+    <div id="gobelino-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+         onclick="if (event.target === this) gobelinoCloseDetailModal()">
+        <div class="bg-white rounded-xl shadow-lg max-w-md w-full p-4">
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 id="gobelino-detail-title" class="font-medium text-gray-800 text-sm"></h3>
+                <button type="button" onclick="gobelinoCloseDetailModal()" class="text-gray-400 hover:text-gray-600 shrink-0">&times;</button>
+            </div>
+            <p id="gobelino-detail-body" class="text-sm text-gray-600 whitespace-pre-wrap break-words"></p>
+        </div>
+    </div>
+
     <script>
         // --- Toast notifications ---
         function gobelinoToast(message, isError = false) {
@@ -107,8 +121,50 @@
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 document.querySelectorAll('.gobelino-popover').forEach(el => el.classList.add('hidden'));
+                gobelinoCloseDetailModal();
             }
         });
+
+        // --- Command detail modal ---
+        // Commands are kept here by id (both the initial Blade-rendered
+        // list and every JS refresh register into it) so a badge only
+        // needs to carry a numeric id in its onclick, never the raw
+        // error text — avoids any HTML/attribute-escaping headache for
+        // messages coming straight from device/server exceptions.
+        window.gobelinoCommandsById = window.gobelinoCommandsById || {};
+
+        function gobelinoRegisterCommands(commands) {
+            (commands || []).forEach(function (command) {
+                window.gobelinoCommandsById[command.id] = command;
+            });
+        }
+
+        function gobelinoOpenDetailModal(title, body) {
+            document.getElementById('gobelino-detail-title').textContent = title;
+            document.getElementById('gobelino-detail-body').textContent = body;
+            document.getElementById('gobelino-detail-modal').classList.remove('hidden');
+        }
+
+        function gobelinoCloseDetailModal() {
+            document.getElementById('gobelino-detail-modal').classList.add('hidden');
+        }
+
+        function gobelinoShowCommandDetail(commandId) {
+            const command = window.gobelinoCommandsById[commandId];
+            if (!command) return;
+
+            const typeLabel = command.type.replace(/_/g, ' ');
+            gobelinoOpenDetailModal(
+                'Command: ' + typeLabel,
+                command.result || 'No further details were reported by the agent.'
+            );
+        }
+
+        // Registers any commands stashed by devices/partials/queue-list.blade.php
+        // (included earlier in the page, before this script tag runs).
+        if (window.gobelinoInitialCommands) {
+            gobelinoRegisterCommands(window.gobelinoInitialCommands);
+        }
 
         // --- Command sending (AJAX, no page reload) ---
         function gobelinoSendCommand(deviceId, type, payload) {
@@ -200,16 +256,22 @@
         };
 
         function gobelinoRenderQueue(commands) {
+            gobelinoRegisterCommands(commands);
+
             if (!commands.length) {
                 return '<p class="px-4 py-4 text-xs text-gray-400">No commands sent yet.</p>';
             }
             return '<ul class="divide-y">' + commands.map(function (command) {
                 const [label, classes] = GOBELINO_STATUS_LABELS[command.status] || [command.status, 'bg-gray-100 text-gray-600'];
                 const typeLabel = command.type.replace(/_/g, ' ');
+                const badge = (command.status === 'failed' && command.result)
+                    ? '<button type="button" onclick="gobelinoShowCommandDetail(' + command.id + ')" ' +
+                        'class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap underline decoration-dotted ' + classes + '">' + label + '</button>'
+                    : '<span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ' + classes + '">' + label + '</span>';
                 return '<li class="px-4 py-3 flex items-center justify-between gap-2">' +
                     '<div><p class="text-gray-800 capitalize">' + typeLabel + '</p>' +
                     '<p class="text-[11px] text-gray-400">' + command.created_at_human + '</p></div>' +
-                    '<span class="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ' + classes + '">' + label + '</span>' +
+                    badge +
                     '</li>';
             }).join('') + '</ul>';
         }
