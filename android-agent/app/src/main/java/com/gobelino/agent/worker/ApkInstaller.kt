@@ -61,6 +61,21 @@ object ApkInstaller {
             if (!response.isSuccessful) throw IOException("download_failed_http_${response.code}")
             val body = response.body ?: throw IOException("empty_response_body")
 
+            // A wrong/expired public link often doesn't 404 — it silently
+            // serves an HTML redirect or "confirm download" page instead
+            // of the APK. That gets caught below by the magic-byte check,
+            // but a mismatched Content-Type here gives a clearer signal
+            // before we even start writing the file.
+            val contentType = body.contentType()?.toString().orEmpty()
+            if (contentType.startsWith("text/html")) {
+                throw IOException(
+                    "apk_url_returned_html: the URL served an HTML page instead of a " +
+                        "file — likely a redirect/confirmation page rather than a direct download link"
+                )
+            }
+
+            val expectedBytes = body.contentLength() // -1 if the server didn't send Content-Length
+
             body.byteStream().use { input ->
                 outFile.outputStream().use { output ->
                     val buffer = ByteArray(64 * 1024)
@@ -72,12 +87,49 @@ object ApkInstaller {
                         if (total > MAX_APK_BYTES) throw IOException("apk_too_large")
                         output.write(buffer, 0, read)
                     }
+
+                    // Guards against a connection that drops mid-download:
+                    // OkHttp's stream just ends silently in that case, so
+                    // without this check we'd hand PackageInstaller a
+                    // truncated zip and get a confusing native-library
+                    // extraction error instead of a clear "download" one.
+                    if (expectedBytes >= 0 && total != expectedBytes) {
+                        throw IOException(
+                            "download_incomplete: expected $expectedBytes bytes, got $total " +
+                                "(connection likely dropped mid-download)"
+                        )
+                    }
                 }
             }
         }
 
         if (outFile.length() == 0L) throw IOException("downloaded_apk_empty")
+        assertLooksLikeApk(outFile)
         return outFile
+    }
+
+    /**
+     * Cheap sanity check before handing the file to PackageInstaller:
+     * every APK is a zip, and every zip starts with the same 4-byte
+     * local-file-header signature. Catches the common case of a public
+     * "download" URL actually serving an HTML page (redirect, login
+     * wall, cloud-storage "confirm download" interstitial) — which
+     * otherwise surfaces as a cryptic INSTALL_FAILED_NO_MATCHING_ABIS /
+     * "Failed to extract native libraries" error instead of a clear one.
+     */
+    private fun assertLooksLikeApk(file: File) {
+        val header = ByteArray(4)
+        val read = file.inputStream().use { it.read(header) }
+        val isZip = read == 4 &&
+            header[0] == 0x50.toByte() && header[1] == 0x4B.toByte() &&
+            header[2] == 0x03.toByte() && header[3] == 0x04.toByte()
+
+        if (!isZip) {
+            throw IOException(
+                "downloaded_file_not_a_valid_apk: doesn't look like a zip/APK — " +
+                    "the URL likely served an HTML page or other non-APK content instead of the file"
+            )
+        }
     }
 
     private suspend fun installSilently(context: Context, apkFile: File) {
