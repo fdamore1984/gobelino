@@ -31,6 +31,11 @@ class Prefs private constructor(context: Context) {
         get() = sp.getString("device_token", null)
         set(value) = sp.edit().putString("device_token", value).apply()
 
+    /** Token FCM corrente del dispositivo, aggiornato da FcmService.onNewToken. */
+    var fcmToken: String?
+        get() = sp.getString("fcm_token", null)
+        set(value) = sp.edit().putString("fcm_token", value).apply()
+
     var pollIntervalSeconds: Int
         get() = sp.getInt("poll_interval_seconds", 300)
         set(value) = sp.edit().putInt("poll_interval_seconds", value).apply()
