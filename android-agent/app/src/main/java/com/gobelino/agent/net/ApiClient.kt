@@ -59,6 +59,23 @@ class ApiClient(private val baseUrl: String) {
             return JSONObject(body)
         }
     }
+
+    /** POST /api/agent/fcm-token — called whenever FCM (re)generates the token. */
+    fun updateFcmToken(deviceToken: String, fcmToken: String) {
+        val body = JSONObject().put("fcm_token", fcmToken)
+
+        val request = Request.Builder()
+            .url("$baseUrl/api/agent/fcm-token")
+            .addHeader("X-Device-Token", deviceToken)
+            .post(body.toString().toRequestBody(JSON))
+            .build()
+
+        http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw ApiException(response.code, response.body?.string().orEmpty())
+            }
+        }
+    }
 }
 
 class ApiException(val code: Int, message: String) : Exception("HTTP $code: $message")
