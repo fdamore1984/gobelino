@@ -3,6 +3,7 @@ package com.gobelino.agent.push
 import android.util.Log
 import com.gobelino.agent.net.ApiClient
 import com.gobelino.agent.util.Prefs
+import com.gobelino.agent.worker.PollScheduler
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,11 @@ class FcmService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.i(TAG, "Messaggio FCM ricevuto: data=${message.data}")
-        // TODO (step successivo): se type == "poll_now", forzare poll immediato
+
+        if (message.data["type"] == "poll_now") {
+            CoroutineScope(Dispatchers.IO).launch {
+                PollScheduler.forceNow(applicationContext)
+            }
+        }
     }
 }
