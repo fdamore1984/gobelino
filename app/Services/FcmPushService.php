@@ -63,6 +63,13 @@ class FcmPushService
 
         abort_unless($json, 500, 'FIREBASE_CREDENTIALS_JSON non configurata.');
 
-        return json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        // Un JSON a una riga valido non dovrebbe mai contenere un vero
+        // a-capo: se compare, è quasi sempre il campo private_key
+        // incollato con newline reali invece della sequenza \n
+        // (tipico di copia-incolla da mobile). Li normalizziamo prima
+        // del decode invece di richiedere un incollaggio perfetto.
+        $sanitized = str_replace(["\r\n", "\r", "\n"], '\\n', $json);
+
+        return json_decode($sanitized, true, flags: JSON_THROW_ON_ERROR);
     }
 }
