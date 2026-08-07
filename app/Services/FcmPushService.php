@@ -18,7 +18,7 @@ class FcmPushService
             $accessToken = $this->accessToken();
             $projectId = $this->credentials()['project_id'];
 
-            Http::withToken($accessToken)
+            $response = Http::withToken($accessToken)
                 ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                     'message' => [
                         'token' => $fcmToken,
@@ -27,8 +27,13 @@ class FcmPushService
                     ],
                 ])
                 ->throw();
+
+            Log::info('FCM push inviato', ['fcm_message_name' => $response->json('name')]);
         } catch (Throwable $e) {
-            Log::warning('FCM push fallito', ['error' => $e->getMessage()]);
+            Log::warning('FCM push fallito', [
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
         }
     }
 
