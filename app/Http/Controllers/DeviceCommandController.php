@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use App\Models\DeviceCommand;
 use App\Services\DeviceWakeupService;
+use App\Services\FcmPushService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,8 +13,10 @@ use Illuminate\Validation\Rule;
 
 class DeviceCommandController extends Controller
 {
-    public function __construct(protected DeviceWakeupService $wakeup)
-    {
+    public function __construct(
+        protected DeviceWakeupService $wakeup,
+        protected FcmPushService $fcmPush,
+    ) {
     }
 
     /**
@@ -72,6 +75,9 @@ class DeviceCommandController extends Controller
         // device, so the command is delivered right away instead of
         // waiting for the block to time out.
         $this->wakeup->notify($device->id);
+        if ($device->fcm_token) {
+            $this->fcmPush->sendPollNow($device->fcm_token);
+        }
 
         $message = 'Command queued: it will be delivered at the device\'s next check-in.';
 

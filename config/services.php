@@ -54,4 +54,9 @@ return [
         'apk_checksum' => env('AGENT_APK_CHECKSUM'),
     ],
 
+    'fcm' => [
+        'credentials_json' => env('FIREBASE_CREDENTIALS_JSON'),
+    ],
+
+
 ];
