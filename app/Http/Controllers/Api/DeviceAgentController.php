@@ -136,6 +136,7 @@ class DeviceAgentController extends Controller
             'command_results.*.id' => ['required', 'integer'],
             'command_results.*.status' => ['required', 'string', 'in:acked,failed'],
             'command_results.*.result' => ['nullable', 'string'],
+            'fcm_token' => ['nullable', 'string'],
         ]);
 
         foreach ($data['command_results'] ?? [] as $result) {
@@ -155,6 +156,7 @@ class DeviceAgentController extends Controller
             'agent_app_version' => $data['agent_app_version'] ?? null,
             'serial_number' => $data['serial_number'] ?? null,
             'last_poll_at' => now(),
+            'fcm_token' => $data['fcm_token'] ?? null,
         ], fn ($value) => $value !== null));
 
         $pendingCommands = $this->fetchAndMarkSent($device);

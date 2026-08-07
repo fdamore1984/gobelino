@@ -54,8 +54,9 @@ object PollRunner {
             val status = buildDeviceInfo(context).apply {
                 put("battery_level", batteryLevel(context))
                 put("command_results", JSONArray(CommandResultStore.drain(context)))
+                prefs.fcmToken?.let { put("fcm_token", it) }
             }
-
+            
             val response = api.poll(prefs.deviceToken!!, status)
 
             prefs.pollIntervalSeconds = response.optInt("poll_interval_seconds", prefs.pollIntervalSeconds)
