@@ -63,12 +63,21 @@ class FcmPushService
 
         abort_unless($json, 500, 'FIREBASE_CREDENTIALS_JSON non configurata.');
 
-        // Un JSON a una riga valido non dovrebbe mai contenere un vero
-        // a-capo: se compare, è quasi sempre il campo private_key
-        // incollato con newline reali invece della sequenza \n
-        // (tipico di copia-incolla da mobile). Li normalizziamo prima
-        // del decode invece di richiedere un incollaggio perfetto.
-        $sanitized = str_replace(["\r\n", "\r", "\n"], '\\n', $json);
+        // Un JSON valido può avere a-capo "strutturali" (formattazione tra
+        // le coppie chiave/valore): quelli sono whitespace JSON legittimo e
+        // vanno lasciati intatti. Il problema è solo quando compare un vero
+        // a-capo DENTRO una stringa (tipicamente il campo private_key
+        // incollato con newline reali invece della sequenza \n, comune con
+        // copia-incolla da mobile) perché lì rompe il parsing.
+        // Sostituendo indiscriminatamente OGNI newline del testo si
+        // rompono anche quelli strutturali (diventano un backslash "nudo"
+        // fuori da una stringa, non valido in JSON): per questo operiamo
+        // solo all'interno dei letterali stringa.
+        $sanitized = preg_replace_callback(
+            '/"(?:[^"\\\\]|\\\\.)*"/s',
+            fn (array $m): string => str_replace(["\r\n", "\r", "\n"], '\\n', $m[0]),
+            $json
+        );
 
         return json_decode($sanitized, true, flags: JSON_THROW_ON_ERROR);
     }
