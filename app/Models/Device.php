@@ -22,6 +22,7 @@ class Device extends Model
         'udid',
         'push_magic',
         'mdm_token',
+        'fcm_token',
         'status',
         'model',
         'manufacturer',

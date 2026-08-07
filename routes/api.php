@@ -10,4 +10,5 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('agent')->group(function () {
     Route::post('/enroll', [DeviceAgentController::class, 'enroll'])->name('api.agent.enroll');
     Route::post('/poll', [DeviceAgentController::class, 'poll'])->name('api.agent.poll');
+    Route::post('/fcm-token', [DeviceAgentController::class, 'updateFcmToken'])->name('api.agent.fcm-token');
 });

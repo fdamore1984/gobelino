@@ -197,6 +197,23 @@ class DeviceAgentController extends Controller
         return $pendingCommands;
     }
 
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $device = $this->authenticateDevice($request);
+
+        if (! $device) {
+            return response()->json(['error' => 'unauthorized'], 401);
+        }
+
+        $data = $request->validate([
+            'fcm_token' => ['required', 'string'],
+        ]);
+
+        $device->update(['fcm_token' => $data['fcm_token']]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
     protected function authenticateDevice(Request $request): ?Device
     {
         $token = $request->header('X-Device-Token') ?? $request->input('device_token');
