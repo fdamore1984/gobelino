@@ -74,7 +74,11 @@ object PollRunner {
             // poll_interval_seconds on top of that. That field is
             // kept only for the backend's isOnline() staleness check
             // and as the fallback below.
-            nextDelaySeconds = MIN_LOOP_DELAY_SECONDS
+            nextDelaySeconds = if (prefs.fcmToken != null) {
+                FCM_BACKED_LOOP_DELAY_SECONDS
+            } else {
+                MIN_LOOP_DELAY_SECONDS
+            }
         } catch (e: Exception) {
             // Swallowed on purpose: the next scheduled run is our retry
             // mechanism, we don't want an exception here to take down
@@ -122,5 +126,6 @@ object PollRunner {
     // rispondesse sempre istantaneamente (es. Redis giu', bug futuro),
     // l'agent non deve mai scendere sotto questo intervallo tra due
     // poll consecutivi.
-    const val MIN_LOOP_DELAY_SECONDS = 5
+    const val MIN_LOOP_DELAY_SECONDS = 30
+    const val FCM_BACKED_LOOP_DELAY_SECONDS = 1800
 }
