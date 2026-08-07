@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "246806511289",
+    "project_id": "gobelino-f3b78",
+    "storage_bucket": "gobelino-f3b78.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:246806511289:android:e8ba5ed92e295d39476568",
+        "android_client_info": {
+          "package_name": "com.gobelino.agent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAr1aiKjfdOwQnjqs-ERBN7iSFzPoG5nJE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
